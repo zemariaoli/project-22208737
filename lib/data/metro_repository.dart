@@ -12,7 +12,7 @@ class MetroRepository {
   }
 
   void insertStation(Station station)  {
-    throw UnimplementedError("insertStation");
+    //throw UnimplementedError("insertStation");
   }
 
   Station getStationDetail(String id) {

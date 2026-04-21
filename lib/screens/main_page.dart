@@ -55,7 +55,7 @@ class MainScreenState extends State<MainPage> {
             label: 'Map',
           ),
           NavigationDestination(
-            key: Key('incidente-report-bottom-bar-item'),
+            key: Key('incidents-report-bottom-bar-item'),
             icon: Icon(Icons.report),
             label: 'Incidents',
           ),

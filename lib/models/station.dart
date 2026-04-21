@@ -10,4 +10,13 @@ class Station {
   final String lineName;
   final List<IncidentReport> reports;
 
+
+  Station({
+    required this.id,
+    required this.name,
+    required this.latitude,
+    required this.longitude,
+    required this.lineName,
+    List<IncidentReport>? reports,
+  }) : reports = reports ?? [];
 }

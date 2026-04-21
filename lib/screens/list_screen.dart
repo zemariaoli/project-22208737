@@ -1,21 +1,89 @@
+import 'package:cmproject/models/station.dart';
+import 'package:cmproject/repository/stations_repository.dart';
+import 'package:cmproject/screens/list_detail_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-
 
 class ListScreen extends StatefulWidget {
+  ListScreen({super.key});
+
   @override
-  ListScreenState createState() => ListScreenState();
+  State<ListScreen> createState() => _ListScreenState();
 }
 
+class _ListScreenState extends State<ListScreen> {
+  List<Station> stations = [];
+  String searchStation = '';
+  final StationsRepository repository = StationsRepository();
 
-class ListScreenState extends State<ListScreen> {
+  @override
+  void initState() {
+    super.initState();
+    stations = repository.getStations();
+  }
+
 
   @override
   Widget build(BuildContext context) {
 
-    return const Placeholder();
+    final repository = StationsRepository();
+
+    final filteredStations = stations.where((station) {
+      final name = station.name.toLowerCase();
+      final line = station.lineName.toLowerCase();
+      final query = searchStation.toLowerCase();
+
+      return name.contains(query) || line.contains(query);
+    }).toList();
+
+    return Scaffold(
+        key: Key('list-screen'),
+        appBar: AppBar(
+          title: const Text('Lista'),
+        ),
+        body: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: TextField(
+                      onChanged: (value) {
+                        setState(() {
+                          searchStation = value;
+                        });
+                      },
+                      decoration: const InputDecoration(
+                        hintText: 'Search stations...',
+                        border: UnderlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: buildList(filteredStations),
+                  ),
+                ],
+            ),
+    );
   }
 
+  Widget buildList(List<Station> filteredStations) {
+    return ListView.separated(
+      key: const Key('list-view'),
 
-
+      itemBuilder: (_, index) => ListTile(
+        title: Text(stations[index].name),
+        subtitle: Text(stations[index].lineName),
+        onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => StationDetailPage(
+                  stationId: filteredStations[index].id,
+                  stationName: filteredStations[index].name,
+                  lineName: filteredStations[index].lineName,
+                )
+            )
+        ),
+      ),
+      separatorBuilder: (_, index) => Divider(color: Colors.white, thickness: 0.5),
+      itemCount: filteredStations.length,
+    );
+  }
 }

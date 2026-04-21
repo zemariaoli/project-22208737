@@ -6,7 +6,17 @@ class DashboardScreen extends StatelessWidget{
   @override
   Widget build(BuildContext context) {
 
-    throw UnimplementedError();
+
+
+    return Scaffold(
+      key: Key("dashboard-screen"),
+      appBar: AppBar(
+        title: const Text('Dashboard'),
+      ),
+
+
+    );
+
   }
 
 
