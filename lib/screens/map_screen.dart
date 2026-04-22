@@ -14,7 +14,7 @@ class MapScreenState extends State<MapScreen> {
     return Scaffold(
       key: Key("map-screen"),
       appBar: AppBar(
-        title: const Text('Map'),
+        title: const Text('Mapa'),
       ),
 
 

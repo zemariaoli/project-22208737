@@ -1,4 +1,9 @@
+import 'package:cmproject/data/metro_repository.dart';
+import 'package:cmproject/models/station.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:cmproject/data/metro_repository.dart';
+
 
 class IncidentsScreen extends StatefulWidget {
   const IncidentsScreen({super.key});
@@ -10,7 +15,9 @@ class IncidentsScreen extends StatefulWidget {
 class _IncidentsScreenState extends State<IncidentsScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  String? _station;
+  final repository = MetroRepository();
+
+  Station? _station;
   String? _type;
   int? _rating;
   String? _dateTime;
@@ -18,6 +25,9 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+
+    final stations = repository.getStations();
+
     return Scaffold(
         key: const Key('incidents-report-screen'),
         appBar: AppBar(
@@ -34,16 +44,17 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
                   const SizedBox(height: 16),
 
                   /// Estação
-                  DropdownButtonFormField<String>(
-                    key: const Key('station-dropdown'),
+                  DropdownButtonFormField<Station>(
+                    key: const Key('incident-station-selection-field'),
                     decoration: const InputDecoration(
                       labelText: 'Selecione',
                     ),
-                    items: const [
-                      DropdownMenuItem(value: 'Oriente', child: Text('Oriente')),
-                      DropdownMenuItem(value: 'Marquês de Pombal', child: Text('Marquês de Pombal')),
-                      DropdownMenuItem(value: 'Baixa-Chiado', child: Text('Baixa-Chiado')),
-                    ],
+                      items: stations.map((station) {
+                        return DropdownMenuItem<Station>(
+                          value: station,
+                          child: Text(station.name),
+                        );
+                      }).toList(),
                     onChanged: (value) {
                       _station = value;
                     },
@@ -55,7 +66,7 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
 
                   /// Tipo
                   DropdownButtonFormField<String>(
-                    key: const Key('type-dropdown'),
+                    key: const Key('incident-type-selection-field'),
                     decoration: const InputDecoration(
                       labelText: 'Selecione',
                     ),
@@ -77,7 +88,7 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
 
                   /// Avaliação
                   TextFormField(
-                    key: const Key('rating-field'),
+                    key: const Key('incident-rating-field'),
                     decoration: const InputDecoration(
                       labelText: 'Avaliação',
                     ),
@@ -98,16 +109,21 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
 
                   /// Data e hora
                   TextFormField(
-                    key: const Key('datetime-field'),
+                    key: const Key('incident-datetime-field'),
                     decoration: const InputDecoration(
                       labelText: 'Data e hora',
                     ),
                     validator: (value) {
-                      final parsed = int.tryParse(value ?? '');
-                      if (parsed == null || parsed < 1 || parsed > 5) {
+                      if (value == null || value.trim().isEmpty) {
                         return 'Preencha a data e hora';
                       }
-                      return null;
+
+                      try {
+                        DateFormat('dd/MM/yyyy HH:mm').parseStrict(value.trim());
+                        return null;
+                      } catch (_) {
+                        return 'Formato esperado: dd/MM/yyyy HH:mm';
+                      }
                     },
                     onSaved: (value) {
                       _dateTime = value;
@@ -118,7 +134,7 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
 
                   /// Notas
                   TextFormField(
-                    key: const Key('notes-field'),
+                    key: const Key('incident-notes-field'),
                     decoration: const InputDecoration(
                       labelText: 'Notas',
                     ),
@@ -133,7 +149,7 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
                   /// Botão
                   Center(
                     child: ElevatedButton(
-                      key: const Key('submit-button'),
+                      key: const Key('incident-form-submit-button'),
                       onPressed: () {
                         if (_formKey.currentState!.validate()) {
                           _formKey.currentState!.save();

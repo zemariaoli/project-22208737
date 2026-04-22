@@ -1,5 +1,5 @@
+import 'package:cmproject/data/metro_repository.dart';
 import 'package:cmproject/models/station.dart';
-import 'package:cmproject/repository/stations_repository.dart';
 import 'package:cmproject/screens/list_detail_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -13,7 +13,7 @@ class ListScreen extends StatefulWidget {
 class _ListScreenState extends State<ListScreen> {
   List<Station> stations = [];
   String searchStation = '';
-  final StationsRepository repository = StationsRepository();
+  final MetroRepository repository = MetroRepository();
 
   @override
   void initState() {
@@ -25,7 +25,7 @@ class _ListScreenState extends State<ListScreen> {
   @override
   Widget build(BuildContext context) {
 
-    final repository = StationsRepository();
+
 
     final filteredStations = stations.where((station) {
       final name = station.name.toLowerCase();
@@ -78,6 +78,9 @@ class _ListScreenState extends State<ListScreen> {
                   stationId: filteredStations[index].id,
                   stationName: filteredStations[index].name,
                   lineName: filteredStations[index].lineName,
+                  longitude: filteredStations[index].longitude,
+                  latitude: filteredStations[index].latitude,
+                  reports: [],
                 )
             )
         ),
