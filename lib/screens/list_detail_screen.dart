@@ -1,24 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:cmproject/data/metro_repository.dart';
 import 'package:cmproject/models/incident_report.dart';
+import 'package:intl/intl.dart';
 
 
-class StationDetailPage extends StatefulWidget{
-  
+class StationDetailPage extends StatefulWidget {
   final String stationId;
   final String stationName;
   final String lineName;
   final double latitude, longitude;
   final List<IncidentReport> reports;
-  
-  const StationDetailPage({super.key,
+
+  const StationDetailPage({
+    super.key,
     required this.stationId,
     required this.stationName,
     required this.lineName,
     required this.latitude,
     required this.longitude,
     List<IncidentReport>? reports,
-  }): reports = reports ?? const [];
+  }) : reports = reports ?? const [];
 
   @override
   State<StationDetailPage> createState() => _StationDetailPageState();
@@ -28,9 +29,7 @@ class _StationDetailPageState extends State<StationDetailPage> {
   @override
   Widget build(BuildContext context) {
     final repository = MetroRepository();
-    final station = repository.getStation(
-      widget.stationId,
-    );
+    final station = repository.getStation(widget.stationId);
 
     if (station == null) {
       return Scaffold(
@@ -44,15 +43,38 @@ class _StationDetailPageState extends State<StationDetailPage> {
 
     return Scaffold(
       key: const Key('detail-screen'),
-      appBar: AppBar(
-          title: const Text('Detail'),
-      ), body: Column(
+      appBar: AppBar(title: const Text('Detail')),
+      body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(station.name),
-          Text(station.lineName),
-          Text(station.latitude.toString()),
-          Text(station.longitude.toString()),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(station.name),
+                Text(station.lineName),
+                Text(station.latitude.toString()),
+                Text(station.longitude.toString()),
+              ],
+            ),
+          ),
+
+          // ✅ ListView de incidentes obrigatória para o teste
+          Expanded(
+            child: ListView(
+              key: const Key('detail-screen-incidents-list'),
+              children: widget.reports.map((report) {
+                return ListTile(
+                  title: Text(report.type.displayName),
+                  subtitle: Text(
+                    DateFormat('dd/MM/yyyy HH:mm').format(report.timestamp),
+                  ),
+                  trailing: Text('${report.rate}/5'),
+                );
+              }).toList(),
+            ),
+          ),
         ],
       ),
     );

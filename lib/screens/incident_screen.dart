@@ -1,8 +1,9 @@
 import 'package:cmproject/data/metro_repository.dart';
 import 'package:cmproject/models/station.dart';
 import 'package:flutter/material.dart';
+import 'package:cmproject/models/incident_report.dart';
 import 'package:intl/intl.dart';
-import 'package:cmproject/data/metro_repository.dart';
+import 'package:testable_form_field/testable_form_field.dart';
 
 
 class IncidentsScreen extends StatefulWidget {
@@ -18,7 +19,7 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
   final repository = MetroRepository();
 
   Station? _station;
-  String? _type;
+  IncidentType? _type;
   int? _rating;
   String? _dateTime;
   String? _notes;
@@ -43,110 +44,221 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
                 children: [
                   const SizedBox(height: 16),
 
-                  /// Estação
-                  DropdownButtonFormField<Station>(
+                  /// ESTAÇÃO
+
+                  TestableFormField<Station>(
                     key: const Key('incident-station-selection-field'),
-                    decoration: const InputDecoration(
-                      labelText: 'Selecione',
-                    ),
-                      items: stations.map((station) {
-                        return DropdownMenuItem<Station>(
-                          value: station,
-                          child: Text(station.name),
-                        );
-                      }).toList(),
-                    onChanged: (value) {
+
+                    getValue: () => _station!,
+                    internalSetValue: (state, value) {
+                      state.didChange(value);
                       _station = value;
                     },
-                    validator: (value) =>
-                    value == null ? 'Selecione uma estação' : null,
+
+                    validator: (value) {
+                      if (value == null) {
+                        return 'Preencha a estação';
+                      }
+                      return null;
+                    },
+
+                    onSaved: (value) {
+                      _station = value;
+                    },
+
+                    builder: (field) {
+                      return InputDecorator(
+                        decoration: InputDecoration(
+                          errorText: field.errorText,
+                        ),
+                        child: DropdownButton<Station>(
+                          value: field.value,
+                          hint: const Text('Selecione'),
+                          isExpanded: true,
+                          underline: const SizedBox(),
+                          items: stations.map((s) {
+                            return DropdownMenuItem(
+                              value: s,
+                              child: Text(s.name),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            field.didChange(value);
+                          },
+                        ),
+                      );
+                    },
                   ),
 
-                  const SizedBox(height: 16),
+                  /// TIPO
 
-                  /// Tipo
-                  DropdownButtonFormField<String>(
+                  TestableFormField<IncidentType>(
                     key: const Key('incident-type-selection-field'),
-                    decoration: const InputDecoration(
-                      labelText: 'Selecione',
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'Escalator', child: Text('ESCALATOR')),
-                      DropdownMenuItem(value: 'Elevator', child: Text('ELEVATOR')),
-                      DropdownMenuItem(value: 'Ticket Machine', child: Text('TICKET_MACHINE')),
-                      DropdownMenuItem(value: 'Turnstile', child: Text('TURNSTILE')),
-                      DropdownMenuItem(value: 'Other', child: Text('OTHER')),
-                    ],
-                    onChanged: (value) {
+
+                    getValue: () => _type!,
+                    internalSetValue: (state, value) {
+                      state.didChange(value);
                       _type = value;
                     },
-                    validator: (value) =>
-                    value == null ? 'Preencha o tipo de incidente' : null,
+
+                    validator: (value) {
+                      if (value == null) return 'Preencha o tipo de incidente';
+                      return null;
+                    },
+                    onSaved: (value) {
+                      _type = value;
+                    },
+
+                    builder: (field) {
+                      return InputDecorator(
+                        decoration: InputDecoration(
+                          errorText: field.errorText,
+                        ),
+                        child: DropdownButton<IncidentType>(
+                          value: field.value,
+                          hint: const Text('Selecione'),
+                          isExpanded: true,
+                          underline: const SizedBox(),
+                          items: IncidentType.values.map((t) {
+                            return DropdownMenuItem(
+                              value: t,
+                              child: Text(t.displayName),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            field.didChange(value);
+                          },
+                        ),
+                      );
+                    },
                   ),
 
                   const SizedBox(height: 16),
 
-                  /// Avaliação
-                  TextFormField(
+                  ///AVALIAÇÃO
+
+                  TestableFormField<int>(
                     key: const Key('incident-rating-field'),
-                    decoration: const InputDecoration(
-                      labelText: 'Avaliação',
-                    ),
-                    keyboardType: TextInputType.number,
+
+                    getValue: () => _rating!,
+                    internalSetValue: (state, value) {
+                      state.didChange(value);
+                      _rating = value;
+                    },
+
                     validator: (value) {
-                      final parsed = int.tryParse(value ?? '');
-                      if (parsed == null || parsed < 1 || parsed > 5) {
+                      if (value == null || value < 1 || value > 5) {
                         return 'Preencha a avaliação';
                       }
                       return null;
                     },
                     onSaved: (value) {
-                      _rating = int.tryParse(value ?? '');
+                      _rating = value;
+                    },
+
+                    builder: (field) {
+                      return InputDecorator(
+                        decoration: InputDecoration(
+                          errorText: field.errorText,
+                          labelText: 'Avaliação',
+                        ),
+                        child: TextFormField(
+                          decoration: const InputDecoration(border: InputBorder.none),
+                          keyboardType: TextInputType.number,
+                          onChanged: (value) {
+                            final parsed = int.tryParse(value);
+                            if (parsed != null) field.didChange(parsed);
+                          },
+                        ),
+                      );
                     },
                   ),
 
+
                   const SizedBox(height: 16),
 
-                  /// Data e hora
-                  TextFormField(
-                    key: const Key('incident-datetime-field'),
-                    decoration: const InputDecoration(
-                      labelText: 'Data e hora',
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Preencha a data e hora';
-                      }
+                  /// DATA E HORA
 
-                      try {
-                        DateFormat('dd/MM/yyyy HH:mm').parseStrict(value.trim());
-                        return null;
-                      } catch (_) {
-                        return 'Formato esperado: dd/MM/yyyy HH:mm';
-                      }
+                  TestableFormField<DateTime>(
+                    key: const Key('incident-datetime-field'),
+
+                    getValue: () => DateFormat('dd/MM/yyyy HH:mm').parse(_dateTime!),
+                    internalSetValue: (state, value) {
+                      state.didChange(value);
+                      _dateTime = DateFormat('dd/MM/yyyy HH:mm').format(value);
+                    },
+
+                    validator: (value) {
+                      if (value == null) return 'Preencha a data e hora';
+                      return null;
                     },
                     onSaved: (value) {
-                      _dateTime = value;
+                      if (value != null) {
+                        _dateTime = DateFormat('dd/MM/yyyy HH:mm').format(value);
+                      }
+                    },
+
+                    builder: (field) {
+                      return InputDecorator(
+                        decoration: InputDecoration(
+                          errorText: field.errorText,
+                          labelText: 'Data e hora',
+                        ),
+                        child: TextFormField(
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                          ),
+                          onChanged: (value) {
+                            try {
+                              final parsed = DateFormat('dd/MM/yyyy HH:mm').parseStrict(value.trim());
+                              field.didChange(parsed);
+                            } catch (_) {
+                              field.didChange(null);
+                            }
+                          },
+                        ),
+                      );
                     },
                   ),
 
                   const SizedBox(height: 16),
 
-                  /// Notas
-                  TextFormField(
+                  /// NOTAS
+
+                  TestableFormField<String>(
                     key: const Key('incident-notes-field'),
-                    decoration: const InputDecoration(
-                      labelText: 'Notas',
-                    ),
-                    maxLines: 2,
+
+                    getValue: () => _notes ?? '',
+                    internalSetValue: (state, value) {
+                      state.didChange(value);
+                      _notes = value;
+                    },
+
                     onSaved: (value) {
                       _notes = value;
+                    },
+
+                    builder: (field) {
+                      return InputDecorator(
+                        decoration: InputDecoration(
+                          errorText: field.errorText,
+                          labelText: 'Notas',
+                        ),
+                        child: TextFormField(
+                          decoration: const InputDecoration(border: InputBorder.none),
+                          maxLines: 2,
+                          onChanged: (value) {
+                            field.didChange(value);
+                          },
+                        ),
+                      );
                     },
                   ),
 
                   const SizedBox(height: 32),
 
-                  /// Botão
+                  /// BOTÃO
+
                   Center(
                     child: ElevatedButton(
                       key: const Key('incident-form-submit-button'),

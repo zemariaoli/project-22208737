@@ -43,7 +43,7 @@ class _ListScreenState extends State<ListScreen> {
         body: Column(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(9),
                     child: TextField(
                       onChanged: (value) {
                         setState(() {

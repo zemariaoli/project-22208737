@@ -4,7 +4,7 @@ import 'package:cmproject/models/station.dart';
 class MetroRepository {
 
   List<Station> getAllStations() {
-    throw UnimplementedError("getAllStations");
+    return getStations();
   }
 
   void attachIncident(String id, IncidentReport report)  {
@@ -28,17 +28,17 @@ class MetroRepository {
     return[
       Station(
           id: "1",
-          name: "Station 1",
+          name: "Oriente",
           latitude: 38.7678,
           longitude: -9.0988,
-          lineName: "Linha Rosa"
+          lineName: "Linha Vermelha"
       ),
       Station(
           id: "2",
-          name: "Station 2",
-          latitude: 38.7678,
+          name: "Marquês de Pombal",
+          latitude: 100.084,
           longitude: -9.0988,
-          lineName: "Linha Castanha"
+          lineName: "Linha Azul"
       ),
       //Station(id: "3",name: "Station 3",latitude: 38.7678,longitude: -9.0988,lineName: "Line 3"),
 
