@@ -28,17 +28,17 @@ class MetroRepository {
     return[
       Station(
           id: "1",
-          name: "Oriente",
+          name: "Station 1",
           latitude: 38.7678,
           longitude: -9.0988,
-          lineName: "Linha Vermelha"
+          lineName: "Linha Rosa"
       ),
       Station(
           id: "2",
-          name: "Marquês de Pombal",
+          name: "Station 2",
           latitude: 100.084,
           longitude: -9.0988,
-          lineName: "Linha Azul"
+          lineName: "Linha Castanha"
       ),
       //Station(id: "3",name: "Station 3",latitude: 38.7678,longitude: -9.0988,lineName: "Line 3"),
 

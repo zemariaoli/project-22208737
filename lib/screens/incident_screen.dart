@@ -67,23 +67,26 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
                     },
 
                     builder: (field) {
+                      final selectedValue = stations.any((s) => s == field.value) ? field.value : null;
+
                       return InputDecorator(
                         decoration: InputDecoration(
                           errorText: field.errorText,
                         ),
                         child: DropdownButton<Station>(
-                          value: field.value,
+                          value: selectedValue, // Usar a variável validada aqui
                           hint: const Text('Selecione'),
                           isExpanded: true,
                           underline: const SizedBox(),
                           items: stations.map((s) {
-                            return DropdownMenuItem(
+                            return DropdownMenuItem<Station>( // Adicione o tipo <Station> explicitamente
                               value: s,
                               child: Text(s.name),
                             );
                           }).toList(),
                           onChanged: (value) {
                             field.didChange(value);
+                            _station = value; // Atualize a variável local também
                           },
                         ),
                       );

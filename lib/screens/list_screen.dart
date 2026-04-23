@@ -67,26 +67,30 @@ class _ListScreenState extends State<ListScreen> {
   Widget buildList(List<Station> filteredStations) {
     return ListView.separated(
       key: const Key('list-view'),
+      itemCount: filteredStations.length,
+      separatorBuilder: (_, index) => const Divider(color: Colors.white, thickness: 0.5),
+      itemBuilder: (context, index) {
+        // Criamos uma referência para a estação correta (a filtrada)
+        final station = filteredStations[index];
 
-      itemBuilder: (_, index) => ListTile(
-        title: Text(stations[index].name),
-        subtitle: Text(stations[index].lineName),
-        onTap: () => Navigator.push(
+        return ListTile(
+          title: Text(station.name), // Agora usamos a estação da lista filtrada
+          subtitle: Text(station.lineName),
+          onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
-                builder: (context) => StationDetailPage(
-                  stationId: filteredStations[index].id,
-                  stationName: filteredStations[index].name,
-                  lineName: filteredStations[index].lineName,
-                  longitude: filteredStations[index].longitude,
-                  latitude: filteredStations[index].latitude,
-                  reports: [],
-                )
-            )
-        ),
-      ),
-      separatorBuilder: (_, index) => Divider(color: Colors.white, thickness: 0.5),
-      itemCount: filteredStations.length,
+              builder: (context) => StationDetailPage(
+                stationId: station.id,
+                stationName: station.name,
+                lineName: station.lineName,
+                longitude: station.longitude,
+                latitude: station.latitude,
+                reports: station.reports, // Use os reports que já vêm na estação
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
