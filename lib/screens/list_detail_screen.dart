@@ -72,7 +72,7 @@ class StationDetailPage extends StatelessWidget {
                       .format(report.timestamp);
 
                   return Padding(
-                    padding: const EdgeInsets.only(left: 36, bottom: 12),
+                    padding: const EdgeInsets.only(left: 0, bottom: 12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
