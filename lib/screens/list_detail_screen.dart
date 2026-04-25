@@ -19,9 +19,17 @@ class StationDetailPage extends StatelessWidget {
     required this.longitude,
   });
 
+  String formatLineName(String lineName) {
+    if (lineName.startsWith('Linha ')) {
+      return lineName;
+    }
+
+    return 'Linha $lineName';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final repository = context.read<MetroRepository>();
+    final repository = Provider.of<MetroRepository>(context, listen: false);
     final station = repository.getStation(stationId);
 
     if (station == null) {
@@ -47,7 +55,7 @@ class StationDetailPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(station.name),
-            Text(station.lineName),
+            Text(formatLineName(station.lineName)),
             Text(station.latitude.toString()),
             Text(station.longitude.toString()),
 
@@ -60,14 +68,21 @@ class StationDetailPage extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final report = station.reports[index];
 
+                  final formattedDate = DateFormat('dd/MM/yyyy HH:mm')
+                      .format(report.timestamp);
+
                   return Padding(
                     padding: const EdgeInsets.only(left: 36, bottom: 12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          '${DateFormat('dd/MM/yyyy HH:mm').format(report.timestamp)} - ${report.type.name}',
+                        Row(
+                          children: [
+                            Text(formattedDate),
+                            Text(' - ${report.type.name.toUpperCase()}'),
+                          ],
                         ),
+
                         if (report.notes != null && report.notes!.isNotEmpty)
                           Text(
                             report.notes!,

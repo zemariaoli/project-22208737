@@ -14,7 +14,7 @@ void main() {
       name: 'Oriente',
       latitude: 38.7678,
       longitude: -9.0988,
-      lineName: 'Linha Rosa',
+      lineName: 'Vermelha',
     ),
   );
 
@@ -24,7 +24,7 @@ void main() {
       name: 'Marquês de Pombal',
       latitude: 38.7926,
       longitude: -9.1738,
-      lineName: 'Linha Azul',
+      lineName: 'Azul',
     ),
   );
 
@@ -34,7 +34,7 @@ void main() {
       name: 'Baixa-Chiado',
       latitude: 38.7107,
       longitude: -9.1406,
-      lineName: 'Linha Verde',
+      lineName: 'Verde',
     ),
   );
 

@@ -14,6 +14,14 @@ class ListScreen extends StatefulWidget {
 class _ListScreenState extends State<ListScreen> {
   String searchStation = '';
 
+  String formatLineName(String lineName) {
+    if (lineName.startsWith('Linha ')) {
+      return lineName;
+    }
+
+    return 'Linha $lineName';
+  }
+
   @override
   Widget build(BuildContext context) {
     final repository = Provider.of<MetroRepository>(context);
@@ -21,7 +29,7 @@ class _ListScreenState extends State<ListScreen> {
 
     final filteredStations = stations.where((station) {
       final name = station.name.toLowerCase();
-      final line = station.lineName.toLowerCase();
+      final line = formatLineName(station.lineName).toLowerCase();
       final query = searchStation.toLowerCase();
 
       return name.contains(query) || line.contains(query);
@@ -71,7 +79,7 @@ class _ListScreenState extends State<ListScreen> {
 
         return ListTile(
           title: Text(station.name),
-          subtitle: Text(station.lineName),
+          subtitle: Text(formatLineName(station.lineName)),
           onTap: () {
             Navigator.push(
               context,
@@ -80,7 +88,7 @@ class _ListScreenState extends State<ListScreen> {
                   return StationDetailPage(
                     stationId: station.id,
                     stationName: station.name,
-                    lineName: station.lineName,
+                    lineName: formatLineName(station.lineName),
                     latitude: station.latitude,
                     longitude: station.longitude,
                   );
