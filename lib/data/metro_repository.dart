@@ -2,55 +2,56 @@ import 'package:cmproject/models/incident_report.dart';
 import 'package:cmproject/models/station.dart';
 
 class MetroRepository {
+  final List<Station> _stations = [];
+
+  MetroRepository();
 
   List<Station> getAllStations() {
-    return getStations();
+    return _stations;
   }
 
-  void attachIncident(String id, IncidentReport report)  {
-    throw UnimplementedError("attachIncident");
-  }
-
-  void insertStation(Station station)  {
-    //throw UnimplementedError("insertStation");
-  }
-
-  Station getStationDetail(String id) {
-    throw UnimplementedError("getStationDetail");
-  }
-
-  List<Station> getStationsByName(String name)  {
-    throw UnimplementedError("getStationsByName");
-  }
-
-
-  List<Station> getStations(){
-    return[
-      Station(
-          id: "1",
-          name: "Station 1",
-          latitude: 38.7678,
-          longitude: -9.0988,
-          lineName: "Linha Rosa"
-      ),
-      Station(
-          id: "2",
-          name: "Station 2",
-          latitude: 100.084,
-          longitude: -9.0988,
-          lineName: "Linha Castanha"
-      ),
-      //Station(id: "3",name: "Station 3",latitude: 38.7678,longitude: -9.0988,lineName: "Line 3"),
-
-    ];
+  List<Station> getStations() {
+    return _stations;
   }
 
   Station? getStation(String id) {
-    for (final station in getStations()) {
+    for (final station in _stations) {
       if (station.id == id) {
         return station;
       }
     }
+
     return null;
+  }
+
+  Station getStationDetail(String id) {
+    final station = getStation(id);
+
+    if (station == null) {
+      throw Exception('Estação não encontrada');
+    }
+
+    return station;
+  }
+
+  void attachIncident(String id, IncidentReport report) {
+    final station = getStation(id);
+
+    if (station != null) {
+      station.reports.add(report);
+    }
+  }
+
+  void insertStation(Station station) {
+    _stations.add(station);
+  }
+
+  List<Station> getStationsByName(String name) {
+    return _stations.where((station) {
+      final query = name.toLowerCase();
+
+      return station.name.toLowerCase().contains(query) ||
+          station.lineName.toLowerCase().contains(query);
+    }).toList();
   }
 }

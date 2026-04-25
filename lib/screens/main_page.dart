@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cmproject/screens/dashboard_screen.dart';
 import 'package:cmproject/screens/list_screen.dart';
@@ -6,16 +5,14 @@ import 'package:cmproject/screens/map_screen.dart';
 import 'package:cmproject/screens/incident_screen.dart';
 
 class MainPage extends StatefulWidget {
+  const MainPage({super.key});
+
   @override
   MainScreenState createState() => MainScreenState();
 }
 
-
-
 class MainScreenState extends State<MainPage> {
-
   int selectedIndex = 0;
-
 
   final List<Widget> screens = [
     DashboardScreen(),
@@ -29,7 +26,6 @@ class MainScreenState extends State<MainPage> {
       selectedIndex = index;
     });
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -59,8 +55,8 @@ class MainScreenState extends State<MainPage> {
             icon: Icon(Icons.report),
             label: 'Incidents',
           ),
-        ]
-      )
+        ],
+      ),
     );
   }
 }
