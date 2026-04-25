@@ -6,22 +6,19 @@ class MapScreen extends StatefulWidget {
 }
 
 class MapScreenState extends State<MapScreen> {
-
-
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       key: Key("map-screen"),
       appBar: AppBar(
         title: const Text('Mapa'),
       ),
-
-
+      body: Center(
+        child: Image.asset(
+          'img.png',
+          fit: BoxFit.contain,
+        ),
+      ),
     );
   }
-
-
-
 }
-
