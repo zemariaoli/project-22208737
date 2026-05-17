@@ -13,28 +13,21 @@ class ListScreen extends StatefulWidget {
 
 class _ListScreenState extends State<ListScreen> {
   String searchStation = '';
+  late Future<List<Station>> _stationsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _stationsFuture = context.read<MetroRepository>().getStations();
+  }
 
   String formatLineName(String lineName) {
-    if (lineName.startsWith('Linha ')) {
-      return lineName;
-    }
-
+    if (lineName.startsWith('Linha ')) return lineName;
     return 'Linha $lineName';
   }
 
   @override
   Widget build(BuildContext context) {
-    final repository = Provider.of<MetroRepository>(context);
-    final stations = repository.getStations();
-
-    final filteredStations = stations.where((station) {
-      final name = station.name.toLowerCase();
-      final line = formatLineName(station.lineName).toLowerCase();
-      final query = searchStation.toLowerCase();
-
-      return name.contains(query) || line.contains(query);
-    }).toList();
-
     return Scaffold(
       key: const Key('list-screen'),
       appBar: AppBar(
@@ -51,13 +44,60 @@ class _ListScreenState extends State<ListScreen> {
                 });
               },
               decoration: const InputDecoration(
-                hintText: 'Search stations...',
+                hintText: 'Pesquisar estação...',
                 border: UnderlineInputBorder(),
               ),
             ),
           ),
           Expanded(
-            child: buildList(filteredStations),
+            child: FutureBuilder<List<Station>>(
+              future: _stationsFuture,
+              builder: (context, snapshot) {
+                // A carregar
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                // Erro
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                        const SizedBox(height: 8),
+                        Text('Erro: ${snapshot.error}'),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              _stationsFuture =
+                                  context.read<MetroRepository>().getStations();
+                            });
+                          },
+                          child: const Text('Tentar novamente'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                // Sem dados
+                final stations = snapshot.data ?? [];
+                final filteredStations = stations.where((station) {
+                  final name = station.name.toLowerCase();
+                  final line = formatLineName(station.lineName).toLowerCase();
+                  final query = searchStation.toLowerCase();
+                  return name.contains(query) || line.contains(query);
+                }).toList();
+
+                if (filteredStations.isEmpty) {
+                  return const Center(child: Text('Sem estações disponíveis.'));
+                }
+
+                return buildList(filteredStations);
+              },
+            ),
           ),
         ],
       ),
@@ -69,10 +109,7 @@ class _ListScreenState extends State<ListScreen> {
       key: const Key('list-view'),
       itemCount: filteredStations.length,
       separatorBuilder: (context, index) {
-        return const Divider(
-          color: Colors.white,
-          thickness: 0.5,
-        );
+        return const Divider(color: Colors.white, thickness: 0.5);
       },
       itemBuilder: (context, index) {
         final station = filteredStations[index];
@@ -84,15 +121,13 @@ class _ListScreenState extends State<ListScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) {
-                  return StationDetailPage(
-                    stationId: station.id,
-                    stationName: station.name,
-                    lineName: formatLineName(station.lineName),
-                    latitude: station.latitude,
-                    longitude: station.longitude,
-                  );
-                },
+                builder: (context) => StationDetailPage(
+                  stationId: station.id,
+                  stationName: station.name,
+                  lineName: formatLineName(station.lineName),
+                  latitude: station.latitude,
+                  longitude: station.longitude,
+                ),
               ),
             );
           },

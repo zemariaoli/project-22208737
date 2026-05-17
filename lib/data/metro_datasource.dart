@@ -13,4 +13,5 @@ abstract class MetroDataSource {
 
   Future<void> attachIncident(String id, IncidentReport report);
 
+  Future<List<Station>> getStations();
 }

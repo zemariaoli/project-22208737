@@ -1,41 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+import 'package:cmproject/connectivity_module.dart';
+import 'package:cmproject/data/http_metro_datasource.dart';
 import 'package:cmproject/data/metro_repository.dart';
-import 'package:cmproject/models/station.dart';
+import 'package:cmproject/data/sqflite_metro_datasource.dart';
 import 'package:cmproject/screens/main_page.dart';
 
-void main() {
-  final repository = MetroRepository();
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
-  repository.insertStation(
-    Station(
-      id: '1',
-      name: 'Oriente',
-      latitude: 38.7678,
-      longitude: -9.0988,
-      lineName: 'Vermelha',
-    ),
+  // Inicializa a base de dados
+  final db = await openDatabase(
+    join(await getDatabasesPath(), 'metro.db'),
+    version: 1,
+    onCreate: (db, version) async {
+      await db.execute('''
+        CREATE TABLE stations (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          lineName TEXT NOT NULL,
+          latitude REAL NOT NULL,
+          longitude REAL NOT NULL
+        )
+      ''');
+    },
   );
 
-  repository.insertStation(
-    Station(
-      id: '2',
-      name: 'Marquês de Pombal',
-      latitude: 38.7926,
-      longitude: -9.1738,
-      lineName: 'Azul',
-    ),
-  );
-
-  repository.insertStation(
-    Station(
-      id: '3',
-      name: 'Baixa-Chiado',
-      latitude: 38.7107,
-      longitude: -9.1406,
-      lineName: 'Verde',
-    ),
+  final repository = MetroRepository(
+    remote: HttpMetroDataSource(),
+    local: SqfliteMetroDataSource(db),
+    connectivity: ConnectivityModule(),
   );
 
   runApp(

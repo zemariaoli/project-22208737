@@ -1,57 +1,57 @@
+import 'package:cmproject/connectivity_module.dart';
+import 'package:cmproject/data/metro_datasource.dart';
+import 'package:cmproject/data/sqflite_metro_datasource.dart';
 import 'package:cmproject/models/incident_report.dart';
 import 'package:cmproject/models/station.dart';
 
 class MetroRepository {
-  final List<Station> _stations = [];
+  final MetroDataSource remote;
+  final SqfliteMetroDataSource local;
+  final ConnectivityModule connectivity;
 
-  MetroRepository();
+  MetroRepository({
+    required this.remote,
+    required this.local,
+    required this.connectivity,
+  });
 
-  List<Station> getAllStations() {
-    return _stations;
-  }
+  Future<List<Station>> getStations() async {
+    final isOnline = await connectivity.isConnected();
 
-  List<Station> getStations() {
-    return _stations;
-  }
-
-  Station? getStation(String id) {
-    for (final station in _stations) {
-      if (station.id == id) {
-        return station;
-      }
+    if (isOnline) {
+      final stations = await remote.getStations();
+      await local.saveStations(stations);
+      return stations;
     }
 
-    return null;
+    return local.getStations();
   }
 
-  Station getStationDetail(String id) {
-    final station = getStation(id);
-
-    if (station == null) {
-      throw Exception('Estação não encontrada');
-    }
-
-    return station;
+  Future<List<Station>> getAllStations() async {
+    return local.getAllStations();
   }
 
-  void attachIncident(String id, IncidentReport report) {
-    final station = getStation(id);
-
-    if (station != null) {
-      station.reports.add(report);
+  Future<Station?> getStation(String id) async {
+    try {
+      return await local.getStationDetail(id);
+    } catch (_) {
+      return null;
     }
   }
 
-  void insertStation(Station station) {
-    _stations.add(station);
+  Future<Station> getStationDetail(String id) async {
+    return local.getStationDetail(id);
   }
 
-  List<Station> getStationsByName(String name) {
-    return _stations.where((station) {
-      final query = name.toLowerCase();
+  Future<void> attachIncident(String id, IncidentReport report) async {
+    await local.attachIncident(id, report);
+  }
 
-      return station.name.toLowerCase().contains(query) ||
-          station.lineName.toLowerCase().contains(query);
-    }).toList();
+  Future<void> insertStation(Station station) async {
+    await local.insertStation(station);
+  }
+
+  Future<List<Station>> getStationsByName(String name) async {
+    return local.getStationsByName(name);
   }
 }
