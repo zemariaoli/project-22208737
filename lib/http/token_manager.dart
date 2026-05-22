@@ -3,8 +3,8 @@ import 'dart:io' as io;
 import 'package:http/io_client.dart';
 
 class TokenManager {
-  static const String _clientKey = 'SEU_CLIENT_KEY';
-  static const String _clientSecret = 'SEU_CLIENT_SECRET';
+  static const String _clientKey = 'rVY6w91BGglzLXHneaY0CBpF60Ua';
+  static const String _clientSecret = 'cTGCYO7jxMmES4kgmHTpIXM_M2sa';
   static const String _tokenUrl = 'https://api.metrolisboa.pt:8243/token';
 
   String? _accessToken;

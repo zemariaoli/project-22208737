@@ -61,40 +61,34 @@ class _StationDetailPageState extends State<StationDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final repository = context.watch<MetroRepository>();
+    final reports = repository.getIncidents(widget.stationId);
+
+    final avgRating = reports.isEmpty
+        ? null
+        : reports.map((r) => r.rate).reduce((a, b) => a + b) / reports.length;
+
     return Scaffold(
       key: const Key('detail-screen'),
-      appBar: AppBar(
-        title: Text(widget.stationName),
-      ),
+      appBar: AppBar(title: Text(widget.stationName)),
       body: FutureBuilder<Station?>(
         future: _stationFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-
           if (snapshot.hasError || snapshot.data == null) {
             return const Center(child: Text('Estação não encontrada'));
           }
 
           final station = snapshot.data!;
 
-          final avgRating = station.reports.isEmpty
-              ? null
-              : station.reports.map((r) => r.rate).reduce((a, b) => a + b) /
-              station.reports.length;
-
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
-                // ESTAÇÃO
-                const Text(
-                  'Estação:',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
+                const Text('Estação:', style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 Card(
                   child: Padding(
@@ -104,7 +98,7 @@ class _StationDetailPageState extends State<StationDetailPage> {
                         children: [
                           Text(station.id),
                           Text(station.name),
-                          Text(formatLineName(station.lineName)),
+                          Text(station.lineName),
                           Text(
                             _distanceMeters != null
                                 ? '${_distanceMeters!.toStringAsFixed(0)} metros até a esta estação'
@@ -121,11 +115,7 @@ class _StationDetailPageState extends State<StationDetailPage> {
 
                 const SizedBox(height: 24),
 
-                // TEMPOS DE ESPERA
-                const Text(
-                  'Tempos de espera:',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
+                const Text('Tempos de espera:', style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 FutureBuilder<List<Map<String, dynamic>>>(
                   future: _waitTimesFuture,
@@ -133,16 +123,13 @@ class _StationDetailPageState extends State<StationDetailPage> {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
                     }
-
                     final waitTimes = snapshot.data ?? [];
-
                     if (waitTimes.isEmpty) {
                       return const Text(
                         'Sem tempos de espera disponíveis.',
                         style: TextStyle(color: Colors.grey),
                       );
                     }
-
                     return Column(
                       children: waitTimes.map((wt) {
                         return Padding(
@@ -162,13 +149,10 @@ class _StationDetailPageState extends State<StationDetailPage> {
 
                 const SizedBox(height: 24),
 
-                // INCIDENTES
-                const Text(
-                  'Incidentes:',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
+                const Text('Incidentes:', style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
-                if (station.reports.isEmpty)
+
+                if (reports.isEmpty)
                   const Text(
                     'Sem incidentes registados.',
                     style: TextStyle(color: Colors.grey),
@@ -178,12 +162,11 @@ class _StationDetailPageState extends State<StationDetailPage> {
                     key: const Key('detail-screen-incidents-list'),
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: station.reports.length,
+                    itemCount: reports.length,
                     itemBuilder: (context, index) {
-                      final report = station.reports[index];
-                      final formattedDate = DateFormat('dd/MM/yyyy HH:mm')
-                          .format(report.timestamp);
-
+                      final report = reports[index];
+                      final formattedDate =
+                      DateFormat('dd/MM/yyyy HH:mm').format(report.timestamp);
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Column(
@@ -195,8 +178,7 @@ class _StationDetailPageState extends State<StationDetailPage> {
                                 Text(' - ${report.type.name.toUpperCase()}'),
                               ],
                             ),
-                            if (report.notes != null &&
-                                report.notes!.isNotEmpty)
+                            if (report.notes != null && report.notes!.isNotEmpty)
                               Text(
                                 report.notes!,
                                 style: const TextStyle(fontSize: 12),
