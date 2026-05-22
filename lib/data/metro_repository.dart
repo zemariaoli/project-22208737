@@ -3,11 +3,16 @@ import 'package:cmproject/data/metro_datasource.dart';
 import 'package:cmproject/data/sqflite_metro_datasource.dart';
 import 'package:cmproject/models/incident_report.dart';
 import 'package:cmproject/models/station.dart';
+import 'package:flutter/cupertino.dart';
 
-class MetroRepository {
+class MetroRepository extends ChangeNotifier {
   final MetroDataSource remote;
   final SqfliteMetroDataSource local;
   final ConnectivityModule connectivity;
+  final Map<String, List<IncidentReport>> _incidents = {};
+
+  List<Station> _cachedStations = [];
+  List<Station> get cachedStations => _cachedStations;
 
   MetroRepository({
     required this.remote,
@@ -21,10 +26,12 @@ class MetroRepository {
     if (isOnline) {
       final stations = await remote.getStations();
       await local.saveStations(stations);
-      return stations;
+      _cachedStations = stations;
+      return _cachedStations;
     }
 
-    return local.getStations();
+    _cachedStations = await local.getStations();
+    return _cachedStations;
   }
 
   Future<List<Station>> getAllStations() async {
@@ -32,6 +39,9 @@ class MetroRepository {
   }
 
   Future<Station?> getStation(String id) async {
+    final cached = _cachedStations.where((s) => s.id == id).firstOrNull;
+    if (cached != null) return cached;
+
     try {
       return await local.getStationDetail(id);
     } catch (_) {
@@ -43,8 +53,13 @@ class MetroRepository {
     return local.getStationDetail(id);
   }
 
-  Future<void> attachIncident(String id, IncidentReport report) async {
-    await local.attachIncident(id, report);
+  List<IncidentReport> getIncidents(String stationId) {
+    return _incidents[stationId] ?? [];
+  }
+
+  void attachIncident(String id, IncidentReport report) {
+    _incidents[id] = [...(_incidents[id] ?? []), report];
+    notifyListeners();
   }
 
   Future<void> insertStation(Station station) async {

@@ -35,12 +35,17 @@ void main() async {
   );
 
   runApp(
-    Provider<MetroRepository>.value(
-      value: repository,
+    ChangeNotifierProvider(
+      create: (_) => MetroRepository(
+        remote: HttpMetroDataSource(),
+        local: SqfliteMetroDataSource(db),
+        connectivity: ConnectivityModule(),
+      ),
       child: const MyApp(),
     ),
   );
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
