@@ -13,7 +13,7 @@ class ListScreen extends StatefulWidget {
 
 class _ListScreenState extends State<ListScreen> {
   String searchStation = '';
-  late Future<List<Station>> _stationsFuture;
+  Future<List<Station>>? _stationsFuture;
 
   @override
   void initState() {

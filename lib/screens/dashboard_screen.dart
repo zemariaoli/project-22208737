@@ -3,13 +3,24 @@ import 'package:provider/provider.dart';
 import 'package:cmproject/data/metro_repository.dart';
 import 'package:cmproject/models/station.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final repository = context.read<MetroRepository>();
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
 
+class _DashboardScreenState extends State<DashboardScreen> {
+  Future<List<Station>>? _stationsFuture;
+
+  @override
+  void iniState() {
+    super.initState();
+    _stationsFuture = context.read<MetroRepository>().getStations();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       key: const Key('dashboard-screen'),
       appBar: AppBar(
@@ -17,7 +28,7 @@ class DashboardScreen extends StatelessWidget {
         backgroundColor: Colors.blueGrey[100],
       ),
       body: FutureBuilder<List<Station>>(
-        future: repository.getStations(),
+        future: _stationsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());

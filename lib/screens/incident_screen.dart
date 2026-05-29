@@ -16,7 +16,7 @@ class IncidentsScreen extends StatefulWidget {
 class _IncidentsScreenState extends State<IncidentsScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  late Future<List<Station>> _stationsFuture;
+  Future<List<Station>>? _stationsFuture;
 
   Station? _station;
   IncidentType? _type;

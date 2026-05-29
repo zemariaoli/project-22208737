@@ -14,23 +14,32 @@ class MainPage extends StatefulWidget {
 class MainScreenState extends State<MainPage> {
   int selectedIndex = 0;
 
-  final List<Widget> screens = [
-    DashboardScreen(),
-    ListScreen(),
-    MapScreen(),
-    IncidentsScreen(),
-  ];
-
   void onItemTapped(int index) {
     setState(() {
       selectedIndex = index;
     });
   }
 
+
+  Widget _buildScreen(int index) {
+    switch (index) {
+      case 0:
+        return const DashboardScreen();
+      case 1:
+        return const ListScreen();
+      case 2:
+        return MapScreen();
+      case 3:
+        return const IncidentsScreen();
+      default:
+        return const DashboardScreen();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: screens[selectedIndex],
+      body: _buildScreen(selectedIndex),
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
         onDestinationSelected: onItemTapped,

@@ -1,21 +1,49 @@
 import 'package:cmproject/data/metro_datasource.dart';
 import 'package:cmproject/models/incident_report.dart';
 import 'package:cmproject/models/station.dart';
+import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
 class SqfliteMetroDataSource extends MetroDataSource {
-  final Database db;
+  Database? _db;
 
-  SqfliteMetroDataSource(this.db);
+  SqfliteMetroDataSource();
+
+  Future<bool> init() async {
+    _db = await openDatabase(
+      join(await getDatabasesPath(), 'metro.db'),
+      version: 1,
+      onCreate: (db, version) async {
+        await db.execute('''
+          CREATE TABLE stations (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            lineName TEXT NOT NULL,
+            latitude REAL NOT NULL,
+            longitude REAL NOT NULL
+          )
+        ''');
+      },
+    );
+    return true;
+  }
+
+  Database get db {
+    if (_db == null) throw Exception('Base de dados não inicializada. Chama init() primeiro.');
+    return _db!;
+  }
 
   @override
   Future<List<Station>> getStations() async {
+    return getAllStations();
+  }
+
+  @override
+  Future<List<Station>> getAllStations() async {
     final result = await db.query('stations');
     return result.map((e) => Station.fromMap(e)).toList();
   }
 
-  @override
-  Future<List<Station>> getAllStations() => getStations();
 
   @override
   Future<void> insertStation(Station station) async {
@@ -30,7 +58,6 @@ class SqfliteMetroDataSource extends MetroDataSource {
   Future<List<Station>> getStationsByName(String name) async {
     final result = await db.query('stations');
     final stations = result.map((e) => Station.fromMap(e)).toList();
-
     final query = name.toLowerCase();
     return stations.where((s) {
       return s.name.toLowerCase().contains(query) ||
@@ -45,25 +72,20 @@ class SqfliteMetroDataSource extends MetroDataSource {
       where: 'id = ?',
       whereArgs: [id],
     );
-
-    if (result.isEmpty) {
-      throw Exception('Estação não encontrada');
-    }
-
+    if (result.isEmpty) throw Exception('Estação não encontrada');
     return Station.fromMap(result.first);
   }
 
   @override
   Future<void> attachIncident(String id, IncidentReport report) async {
-    // Incidentes são guardados em memória (não persistidos na DB)
-    // Se quiseres persistir, precisas de criar uma tabela de incidentes
     throw UnimplementedError('Incidentes não persistidos na base de dados.');
   }
 
-  // Método auxiliar para guardar lista completa (usado pelo repositório)
   Future<void> saveStations(List<Station> stations) async {
-    await db.delete('stations');
 
+    if (_db == null) return;
+
+    await db.delete('stations');
     for (final station in stations) {
       await db.insert(
         'stations',

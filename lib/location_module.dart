@@ -1,19 +1,27 @@
 import 'package:geolocator/geolocator.dart';
 
 class LocationModule {
+
+  LocationModule();
+
   Future<Position?> getCurrentPosition() async {
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) return null;
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return null;
 
-    var permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) return null;
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) return null;
+      }
+
+      if (permission == LocationPermission.deniedForever) return null;
+
+      return await Geolocator.getCurrentPosition()
+          .timeout(const Duration(seconds: 5), onTimeout: () => throw Exception());
+    } catch (_) {
+      return null;
     }
-
-    if (permission == LocationPermission.deniedForever) return null;
-
-    return Geolocator.getCurrentPosition();
   }
 
   double distanceTo({

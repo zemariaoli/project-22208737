@@ -12,6 +12,11 @@ class HttpMetroDataSource extends MetroDataSource {
 
   @override
   Future<List<Station>> getStations() async {
+    return getAllStations();
+  }
+
+  @override
+  Future<List<Station>> getAllStations() async {
     final response = await _client.get(url: '$_baseUrl/infoEstacao/todos');
 
     if (response.statusCode != 200) {
@@ -19,15 +24,9 @@ class HttpMetroDataSource extends MetroDataSource {
     }
 
     final body = jsonDecode(response.body);
-
-    // A API retorna { "resposta": [...] }
     final List<dynamic> data = body['resposta'] ?? body;
-
     return data.map<Station>((e) => Station.fromJson(e)).toList();
   }
-
-  @override
-  Future<List<Station>> getAllStations() => getStations();
 
   @override
   Future<List<Station>> getStationsByName(String name) async =>

@@ -5,12 +5,15 @@ import 'package:cmproject/models/incident_report.dart';
 import 'package:cmproject/models/station.dart';
 import 'package:flutter/cupertino.dart';
 
+import 'generic_data_source.dart';
+
 class MetroRepository extends ChangeNotifier {
   final MetroDataSource remote;
   final SqfliteMetroDataSource local;
   final ConnectivityModule connectivity;
-  final Map<String, List<IncidentReport>> _incidents = {};
+  final GenericDataSource? generic;
 
+  final Map<String, List<IncidentReport>> _incidents = {};
   List<Station> _cachedStations = [];
   List<Station> get cachedStations => _cachedStations;
 
@@ -18,6 +21,7 @@ class MetroRepository extends ChangeNotifier {
     required this.remote,
     required this.local,
     required this.connectivity,
+    this.generic,
   });
 
   Future<List<Station>> getStations() async {
@@ -25,7 +29,10 @@ class MetroRepository extends ChangeNotifier {
 
     if (isOnline) {
       final stations = await remote.getStations();
-      await local.saveStations(stations);
+      // Tenta guardar localmente mas não falha se não conseguir
+      try {
+        await local.saveStations(stations);
+      } catch (_) {}
       _cachedStations = stations;
       return _cachedStations;
     }
