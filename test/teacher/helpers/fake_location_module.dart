@@ -7,7 +7,6 @@ class FakeLocationModule extends LocationModule {
 
   FakeLocationModule({this.latitude, this.longitude});
 
-  @override
   Stream<LocationData> onLocationChanged() {
 
     if (latitude == null) {

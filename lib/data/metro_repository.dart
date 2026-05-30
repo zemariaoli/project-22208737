@@ -46,13 +46,12 @@ class MetroRepository extends ChangeNotifier {
   }
 
   Future<Station?> getStation(String id) async {
-    final cached = _cachedStations.where((s) => s.id == id).firstOrNull;
-    if (cached != null) return cached;
-
     try {
+      // Vai sempre ao local para trazer a station com reports
       return await local.getStationDetail(id);
     } catch (_) {
-      return null;
+      // Fallback para a cache se o local falhar
+      return _cachedStations.where((s) => s.id == id).firstOrNull;
     }
   }
 
@@ -61,13 +60,36 @@ class MetroRepository extends ChangeNotifier {
   }
 
   List<IncidentReport> getIncidents(String stationId) {
-    return _incidents[stationId] ?? [];
+    // Primeiro verifica o map interno (incidentes adicionados na sessão)
+    final fromMap = _incidents[stationId] ?? [];
+
+    // Depois verifica a station em cache (incidentes que vieram do datasource)
+    final fromCache = _cachedStations
+        .where((s) => s.id == stationId)
+        .firstOrNull?.reports ?? [];
+
+    // Junta os dois sem duplicados
+    final all = [...fromCache];
+    for (final r in fromMap) {
+      if (!all.contains(r)) all.add(r);
+    }
+    return all;
   }
 
-  void attachIncident(String id, IncidentReport report) {
+  Future<void> attachIncident(String id, IncidentReport report) async {
+
     _incidents[id] = [...(_incidents[id] ?? []), report];
+
+    final index = _cachedStations.indexWhere((s) => s.id == id);
+    if (index != -1) {
+      _cachedStations[index].reports.add(report);
+    }
+
+    await local.attachIncident(id, report);;
+
     notifyListeners();
   }
+
 
   Future<void> insertStation(Station station) async {
     await local.insertStation(station);

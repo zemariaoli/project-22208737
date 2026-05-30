@@ -13,7 +13,6 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   Future<List<Station>>? _stationsFuture;
 
-  @override
   void iniState() {
     super.initState();
     _stationsFuture = context.read<MetroRepository>().getStations();

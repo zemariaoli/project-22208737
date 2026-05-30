@@ -62,11 +62,6 @@ class _StationDetailPageState extends State<StationDetailPage> {
   @override
   Widget build(BuildContext context) {
     final repository = context.watch<MetroRepository>();
-    final reports = repository.getIncidents(widget.stationId);
-
-    final avgRating = reports.isEmpty
-        ? null
-        : reports.map((r) => r.rate).reduce((a, b) => a + b) / reports.length;
 
     return Scaffold(
       key: const Key('detail-screen'),
@@ -83,6 +78,21 @@ class _StationDetailPageState extends State<StationDetailPage> {
 
           final station = snapshot.data!;
 
+          // Reports da station (vindos do datasource)
+          final reportsFromStation = station.reports;
+          // Reports da sessão atual (adicionados via formulário)
+          final reportsFromSession = repository.getIncidents(widget.stationId);
+          // Junta os dois sem duplicados
+          final reports = [
+            ...reportsFromStation,
+            ...reportsFromSession.where((r) => !reportsFromStation.contains(r)),
+          ];
+
+          final avgRating = reports.isEmpty
+              ? null
+              : reports.map((r) => r.rate).reduce((a, b) => a + b) /
+              reports.length;
+
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -98,7 +108,7 @@ class _StationDetailPageState extends State<StationDetailPage> {
                         children: [
                           Text(station.id),
                           Text(station.name),
-                          Text(station.lineName),
+                          Text(formatLineName(station.lineName)),
                           Text(
                             _distanceMeters != null
                                 ? '${_distanceMeters!.toStringAsFixed(0)} metros até a esta estação'
@@ -152,13 +162,7 @@ class _StationDetailPageState extends State<StationDetailPage> {
                 const Text('Incidentes:', style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
 
-                if (reports.isEmpty)
-                  const Text(
-                    'Sem incidentes registados.',
-                    style: TextStyle(color: Colors.grey),
-                  )
-                else
-                  ListView.builder(
+                ListView.builder(
                     key: const Key('detail-screen-incidents-list'),
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),

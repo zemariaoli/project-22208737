@@ -310,7 +310,7 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
                     Center(
                       child: ElevatedButton(
                         key: const Key('incident-form-submit-button'),
-                        onPressed: () {
+                        onPressed: () async {
                           if (_formKey.currentState!.validate()) {
                             _formKey.currentState!.save();
 
@@ -321,7 +321,7 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
                               type: _type!,
                             );
 
-                            repository.attachIncident(_station!.id, report);
+                            await repository.attachIncident(_station!.id, report);
 
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(

@@ -15,12 +15,10 @@ class MapScreenState extends State<MapScreen> {
   GoogleMapController? _mapController;
   LatLng _currentPosition = const LatLng(38.7369, -9.1427);
   Future<List<Station>>? _stationsFuture;
-  late LocationModule _locationModule;
 
   @override
   void initState() {
     super.initState();
-    _locationModule = context.read<LocationModule>();
     _stationsFuture = context.read<MetroRepository>().getStations();
   }
 
