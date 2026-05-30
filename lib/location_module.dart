@@ -1,8 +1,7 @@
 import 'package:geolocator/geolocator.dart';
+import 'package:location/location.dart';
 
 class LocationModule {
-
-  LocationModule();
 
   Future<Position?> getCurrentPosition() async {
     try {
@@ -22,6 +21,10 @@ class LocationModule {
     } catch (_) {
       return null;
     }
+  }
+
+  Stream<LocationData> onLocationChanged() {
+    return Stream.empty();
   }
 
   double distanceTo({
