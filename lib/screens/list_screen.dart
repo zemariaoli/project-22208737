@@ -53,37 +53,36 @@ class _ListScreenState extends State<ListScreen> {
             child: FutureBuilder<List<Station>>(
               future: _stationsFuture,
               builder: (context, snapshot) {
-                // A carregar
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                // Erro
                 if (snapshot.hasError) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                        const SizedBox(height: 8),
-                        Text('Erro: ${snapshot.error}'),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              _stationsFuture =
-                                  context.read<MetroRepository>().getStations();
-                            });
-                          },
-                          child: const Text('Tentar novamente'),
-                        ),
-                      ],
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text(
+                        'Não foi possível obter as estações de metro. Verifique a conectividade e volte a tentar',
+                        textAlign: TextAlign.center,
+                      ),
                     ),
                   );
                 }
 
-                // Sem dados
                 final stations = snapshot.data ?? [];
+
+                if (stations.isEmpty) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text(
+                        'Não foi possível obter as estações de metro. Verifique a conectividade e volte a tentar',
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  );
+                }
+
                 final filteredStations = stations.where((station) {
                   final name = station.name.toLowerCase();
                   final line = formatLineName(station.lineName).toLowerCase();
