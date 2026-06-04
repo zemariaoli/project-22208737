@@ -3,8 +3,22 @@ import 'package:provider/provider.dart';
 import 'package:cmproject/data/metro_repository.dart';
 import 'package:cmproject/models/station.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+
+  Future<List<Station>>? _stationsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    context.read<MetroRepository>().getStations();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -12,18 +26,18 @@ class DashboardScreen extends StatelessWidget {
 
     return Scaffold(
       key: const Key('dashboard-screen'),
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         title: const Text(
           'Metro de Lisboa',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         elevation: 0,
-        backgroundColor: Colors.blueGrey.shade800,
+        backgroundColor: const Color(0xFFB71C1C),
         foregroundColor: Colors.white,
       ),
       body: FutureBuilder<List<Station>>(
-        future: repository.getStations(),
+        future: _stationsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -33,7 +47,9 @@ class DashboardScreen extends StatelessWidget {
             return _buildError();
           }
 
-          final stations = snapshot.data ?? [];
+          final stations = repository.cachedStations.isNotEmpty
+              ? repository.cachedStations
+              : snapshot.data ?? [];
 
           final totalStations = stations.length;
           final totalIncidents =
@@ -83,9 +99,18 @@ class DashboardScreen extends StatelessWidget {
                 _buildSectionTitle('Linhas'),
                 const SizedBox(height: 8),
                 _buildLinesCard(stations),
+
                 const SizedBox(height: 20),
+
+                _buildSectionTitle('Mapa da Rede'),
+                const SizedBox(height: 8),
+                _buildMetroMapCard(),
+
+                const SizedBox(height: 20),
+
                 _buildSectionTitle('Sabia que...'),
                 const SizedBox(height: 8),
+
                 _buildFactCard(),
                 const SizedBox(height: 20),
                 _buildSectionTitle('O que dizem os utilizadores'),
@@ -100,13 +125,94 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildMetroMapCard() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.blueGrey.shade50,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.map_outlined,
+                      color: Colors.blueGrey.shade700,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Mapa Oficial do Metro',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Explore todas as linhas e estações da rede metropolitana de Lisboa. Pode ampliar o mapa para uma visualização mais detalhada.',
+                  style: TextStyle(
+                    color: Colors.grey.shade700,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          ClipRRect(
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(12),
+              bottomRight: Radius.circular(12),
+            ),
+            child: InteractiveViewer(
+              minScale: 1,
+              maxScale: 5,
+              child: Image.asset(
+                'img.png',
+                width: double.infinity,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildHeader() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.blueGrey.shade800, Colors.blueGrey.shade500],
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF8E0000),
+            Color(0xFFC62828),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -114,7 +220,7 @@ class DashboardScreen extends StatelessWidget {
       ),
       child: const Row(
         children: [
-          Icon(Icons.subway, color: Colors.white, size: 40),
+          Icon(Icons.train, color: Colors.white, size: 42),
           SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -136,7 +242,7 @@ class DashboardScreen extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'A tua rede de metropolitano',
+                  'Informação, estatísticas e monitorização da rede',
                   style: TextStyle(
                     color: Colors.white60,
                     fontSize: 12,
@@ -374,13 +480,13 @@ class DashboardScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.blueGrey.shade50,
+        color: const Color(0xFFFFEBEE),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.blueGrey.shade200),
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline, color: Colors.blueGrey.shade700, size: 28),
+          Icon(Icons.info_outline, color: const Color(0xFFB71C1C), size: 28),
           const SizedBox(width: 12),
           const Expanded(
             child: Text(
@@ -444,9 +550,9 @@ class DashboardScreen extends StatelessWidget {
     return Text(
       title,
       style: const TextStyle(
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: FontWeight.bold,
-        color: Colors.black87,
+        color: const Color(0xFFB71C1C),
       ),
     );
   }
