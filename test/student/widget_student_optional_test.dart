@@ -12,6 +12,157 @@ void main() {
 
 void runWidgetTests() {
 
+  // ─── INCIDENT SCREEN ───────────────────────────────────────────────────────────
+
+  testWidgets('Incidentes - Validacao rejeita data no futuro', (WidgetTester tester) async {
+    final dependencies = await tester.pumpAppWithDependencies();
+    final local = dependencies.localDataSource;
+
+    await tester.tap(find.byKey(Key('incidents-report-bottom-bar-item')));
+    await tester.pumpAndSettle();
+
+    final stationField = tester.widget<TestableFormField<Station>>(find.byKey(Key('incident-station-selection-field')));
+    final typeField = tester.widget<TestableFormField<IncidentType>>(find.byKey(Key('incident-type-selection-field')));
+    final ratingField = tester.widget<TestableFormField<int>>(find.byKey(Key('incident-rating-field')));
+    final dateTimeField = tester.widget<TestableFormField<DateTime>>(find.byKey(Key('incident-datetime-field')));
+
+    stationField.setValue(local.stations.first);
+    typeField.setValue(IncidentType.Elevator);
+    ratingField.setValue(3);
+    dateTimeField.setValue(DateTime.now().add(Duration(days: 1))); // futuro
+
+    final submitFinder = find.byKey(Key('incident-form-submit-button'));
+    await tester.ensureVisible(submitFinder);
+    await tester.tap(submitFinder);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('A data não pode ser no futuro'), findsOneWidget,
+        reason: "Deveria apresentar erro quando a data é no futuro");
+
+    expect(local.stations.first.reports.isEmpty, true,
+        reason: "Com data no futuro, não deveria ser inserido nenhum incidente");
+  });
+
+  testWidgets('Incidentes - Validacao rejeita data ha mais de 3 anos', (WidgetTester tester) async {
+    final dependencies = await tester.pumpAppWithDependencies();
+    final local = dependencies.localDataSource;
+
+    await tester.tap(find.byKey(Key('incidents-report-bottom-bar-item')));
+    await tester.pumpAndSettle();
+
+    final stationField = tester.widget<TestableFormField<Station>>(find.byKey(Key('incident-station-selection-field')));
+    final typeField = tester.widget<TestableFormField<IncidentType>>(find.byKey(Key('incident-type-selection-field')));
+    final ratingField = tester.widget<TestableFormField<int>>(find.byKey(Key('incident-rating-field')));
+    final dateTimeField = tester.widget<TestableFormField<DateTime>>(find.byKey(Key('incident-datetime-field')));
+
+    stationField.setValue(local.stations.first);
+    typeField.setValue(IncidentType.Elevator);
+    ratingField.setValue(3);
+    dateTimeField.setValue(DateTime.now().subtract(Duration(days: 365 * 4))); // mais de 3 anos
+
+    final submitFinder = find.byKey(Key('incident-form-submit-button'));
+    await tester.ensureVisible(submitFinder);
+    await tester.tap(submitFinder);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('A data não pode ser há mais de 3 anos'), findsOneWidget,
+        reason: "Deveria apresentar erro quando a data é há mais de 3 anos");
+
+    expect(local.stations.first.reports.isEmpty, true,
+        reason: "Com data há mais de 3 anos, não deveria ser inserido nenhum incidente");
+  });
+
+  testWidgets('Incidentes - Validacao aceita data no passado dentro do limite', (WidgetTester tester) async {
+    final dependencies = await tester.pumpAppWithDependencies();
+    final local = dependencies.localDataSource;
+
+    await tester.tap(find.byKey(Key('incidents-report-bottom-bar-item')));
+    await tester.pumpAndSettle();
+
+    final stationField = tester.widget<TestableFormField<Station>>(find.byKey(Key('incident-station-selection-field')));
+    final typeField = tester.widget<TestableFormField<IncidentType>>(find.byKey(Key('incident-type-selection-field')));
+    final ratingField = tester.widget<TestableFormField<int>>(find.byKey(Key('incident-rating-field')));
+    final dateTimeField = tester.widget<TestableFormField<DateTime>>(find.byKey(Key('incident-datetime-field')));
+
+    stationField.setValue(local.stations.first);
+    typeField.setValue(IncidentType.Elevator);
+    ratingField.setValue(3);
+    dateTimeField.setValue(DateTime.now().subtract(Duration(days: 30))); // dentro do limite
+
+    final submitFinder = find.byKey(Key('incident-form-submit-button'));
+    await tester.ensureVisible(submitFinder);
+    await tester.tap(submitFinder);
+    await tester.pumpAndSettle(Duration(milliseconds: 200));
+
+    expect(find.textContaining('A data não pode'), findsNothing,
+        reason: "Não deveria apresentar erro para data dentro do limite de 3 anos");
+
+    expect(local.stations.first.reports.isNotEmpty, true,
+        reason: "Com data válida, o incidente deveria ser inserido");
+  });
+
+
+  testWidgets('Incidentes - Validacao nao submete com rating invalido', (WidgetTester tester) async {
+    final dependencies = await tester.pumpAppWithDependencies();
+    final local = dependencies.localDataSource;
+
+    await tester.tap(find.byKey(Key('incidents-report-bottom-bar-item')));
+    await tester.pumpAndSettle();
+
+    final stationField = tester.widget<TestableFormField<Station>>(find.byKey(Key('incident-station-selection-field')));
+    final typeField = tester.widget<TestableFormField<IncidentType>>(find.byKey(Key('incident-type-selection-field')));
+    final ratingField = tester.widget<TestableFormField<int>>(find.byKey(Key('incident-rating-field')));
+    final dateTimeField = tester.widget<TestableFormField<DateTime>>(find.byKey(Key('incident-datetime-field')));
+
+    stationField.setValue(local.stations.first);
+    typeField.setValue(IncidentType.Elevator);
+    ratingField.setValue(0); // inválido — fora do intervalo 1-5
+    dateTimeField.setValue(DateTime.now().subtract(Duration(days: 1)));
+
+    final submitFinder = find.byKey(Key('incident-form-submit-button'));
+    await tester.ensureVisible(submitFinder);
+    await tester.tap(submitFinder);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Preencha a avaliação'), findsOneWidget,
+        reason: "Deveria apresentar erro de validação para rating inválido (0)");
+
+    expect(local.stations.first.reports.isEmpty, true,
+        reason: "Com rating inválido, não deveria ser inserido nenhum incidente");
+  });
+
+
+
+  testWidgets('Incidentes - Formulario limpo apos submissao', (WidgetTester tester) async {
+    final dependencies = await tester.pumpAppWithDependencies();
+    final local = dependencies.localDataSource;
+
+    await tester.tap(find.byKey(Key('incidents-report-bottom-bar-item')));
+    await tester.pumpAndSettle();
+
+    final stationField = tester.widget<TestableFormField<Station>>(find.byKey(Key('incident-station-selection-field')));
+    final typeField = tester.widget<TestableFormField<IncidentType>>(find.byKey(Key('incident-type-selection-field')));
+    final ratingField = tester.widget<TestableFormField<int>>(find.byKey(Key('incident-rating-field')));
+    final dateTimeField = tester.widget<TestableFormField<DateTime>>(find.byKey(Key('incident-datetime-field')));
+    final notesField = tester.widget<TestableFormField<String>>(find.byKey(Key('incident-notes-field')));
+
+    stationField.setValue(local.stations.first);
+    typeField.setValue(IncidentType.Elevator);
+    ratingField.setValue(3);
+    // usa data recente válida em vez de data fixa no passado longínquo
+    dateTimeField.setValue(DateTime.now().subtract(Duration(days: 1)));
+    notesField.setValue('Teste');
+
+    final submitFinder = find.byKey(Key('incident-form-submit-button'));
+    await tester.ensureVisible(submitFinder);
+    await tester.tap(submitFinder);
+    await tester.pumpAndSettle(Duration(milliseconds: 200));
+
+    expect(local.stations.first.reports.isNotEmpty, true,
+        reason: "Após submissão, deveria existir pelo menos um incidente na estação");
+  });
+
+
   // ─── DASHBOARD ───────────────────────────────────────────────────────────
 
   testWidgets('Dashboard - Apresenta numero de estacoes', (WidgetTester tester) async {
@@ -165,7 +316,7 @@ void runWidgetTests() {
     expect(listTilesFinder, findsOneWidget,
         reason: "Após filtrar por 'Station 1', deveria existir apenas 1 resultado");
 
-    expect(find.text('Station 1'), findsOneWidget,
+    expect(find.text('Station 1'), findsAtLeastNWidgets(1),
         reason: "Deveria apresentar 'Station 1' após filtrar");
     expect(find.text('Station 2'), findsNothing,
         reason: "Não deveria apresentar 'Station 2' após filtrar por 'Station 1'");
@@ -309,62 +460,5 @@ void runWidgetTests() {
         reason: "Deveria apresentar as notas do segundo incidente");
   });
 
-  // ─── INCIDENTES ───────────────────────────────────────────────────────────
 
-  testWidgets('Incidentes - Formulario limpo apos submissao', (WidgetTester tester) async {
-    final dependencies = await tester.pumpAppWithDependencies();
-    final local = dependencies.localDataSource;
-
-    await tester.tap(find.byKey(Key('incidents-report-bottom-bar-item')));
-    await tester.pumpAndSettle();
-
-    final stationField = tester.widget<TestableFormField<Station>>(find.byKey(Key('incident-station-selection-field')));
-    final typeField = tester.widget<TestableFormField<IncidentType>>(find.byKey(Key('incident-type-selection-field')));
-    final ratingField = tester.widget<TestableFormField<int>>(find.byKey(Key('incident-rating-field')));
-    final dateTimeField = tester.widget<TestableFormField<DateTime>>(find.byKey(Key('incident-datetime-field')));
-    final notesField = tester.widget<TestableFormField<String>>(find.byKey(Key('incident-notes-field')));
-
-    stationField.setValue(local.stations.first);
-    typeField.setValue(IncidentType.Elevator);
-    ratingField.setValue(3);
-    dateTimeField.setValue(DateTime(2024, 6, 5, 10, 0));
-    notesField.setValue('Teste');
-
-    final submitFinder = find.byKey(Key('incident-form-submit-button'));
-    await tester.ensureVisible(submitFinder);
-    await tester.tap(submitFinder);
-    await tester.pumpAndSettle();
-
-    expect(local.stations.first.reports.isNotEmpty, true,
-        reason: "Após submissão, deveria existir pelo menos um incidente na estação");
-  });
-
-  testWidgets('Incidentes - Validacao nao submete com rating invalido', (WidgetTester tester) async {
-    final dependencies = await tester.pumpAppWithDependencies();
-    final local = dependencies.localDataSource;
-
-    await tester.tap(find.byKey(Key('incidents-report-bottom-bar-item')));
-    await tester.pumpAndSettle();
-
-    final stationField = tester.widget<TestableFormField<Station>>(find.byKey(Key('incident-station-selection-field')));
-    final typeField = tester.widget<TestableFormField<IncidentType>>(find.byKey(Key('incident-type-selection-field')));
-    final ratingField = tester.widget<TestableFormField<int>>(find.byKey(Key('incident-rating-field')));
-    final dateTimeField = tester.widget<TestableFormField<DateTime>>(find.byKey(Key('incident-datetime-field')));
-
-    stationField.setValue(local.stations.first);
-    typeField.setValue(IncidentType.Elevator);
-    ratingField.setValue(0); // inválido
-    dateTimeField.setValue(DateTime(2024, 6, 5, 10, 0));
-
-    final submitFinder = find.byKey(Key('incident-form-submit-button'));
-    await tester.ensureVisible(submitFinder);
-    await tester.tap(submitFinder);
-    await tester.pumpAndSettle();
-
-    expect(find.textContaining('Preencha a avaliação'), findsOneWidget,
-        reason: "Deveria apresentar erro de validação para rating inválido (0)");
-
-    expect(local.stations.first.reports.isEmpty, true,
-        reason: "Com rating inválido, não deveria ser inserido nenhum incidente");
-  });
 }

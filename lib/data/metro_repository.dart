@@ -59,6 +59,19 @@ class MetroRepository extends ChangeNotifier {
     return local.getStationDetail(id);
   }
 
+  Future<List<Map<String, dynamic>>> getWaitTimes(String stationId) async {
+    if (generic == null) return [];
+
+    final result = await generic!.execute(
+      type: GenericOperationType.GetWaitTimes,
+      data: stationId,
+    );
+
+    if (result == null) return [];
+    return (result as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
+
   List<IncidentReport> getIncidents(String stationId) {
     // Primeiro verifica o map interno (incidentes adicionados na sessão)
     final fromMap = _incidents[stationId] ?? [];
@@ -98,4 +111,7 @@ class MetroRepository extends ChangeNotifier {
   Future<List<Station>> getStationsByName(String name) async {
     return local.getStationsByName(name);
   }
+
+
+
 }

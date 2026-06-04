@@ -20,6 +20,7 @@ class MapScreenState extends State<MapScreen> {
   void initState() {
     super.initState();
     _stationsFuture = context.read<MetroRepository>().getStations();
+    _loadLocation();
   }
 
   Future<void> _loadLocation() async {
@@ -36,54 +37,101 @@ class MapScreenState extends State<MapScreen> {
     );
   }
 
+  Set<Marker> _buildMarkers(List<Station> stations) {
+    return stations.map((station) {
+      return Marker(
+        markerId: MarkerId(station.id),
+        position: LatLng(station.latitude, station.longitude),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        infoWindow: InfoWindow(
+          title: station.name,
+          snippet: 'Linha ${station.lineName}',
+        ),
+        onTap: () => _navigateToDetail(station),
+      );
+    }).toSet();
+  }
+
+  void _navigateToDetail(Station station) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => StationDetailPage(
+          stationId: station.id,
+          stationName: station.name,
+          lineName: station.lineName,
+          latitude: station.latitude,
+          longitude: station.longitude,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: const Key('map-screen'),
-      appBar: AppBar(title: const Text('Mapa')),
+      backgroundColor: Colors.grey.shade100,
+      appBar: AppBar(
+        title: const Text(
+          'Mapa',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        elevation: 0,
+        backgroundColor: Colors.blueGrey.shade800,
+        foregroundColor: Colors.white,
+      ),
       body: FutureBuilder<List<Station>>(
         future: _stationsFuture,
         builder: (context, snapshot) {
-          final stations = snapshot.data ?? [];
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-          final markers = stations.map((station) {
-            return Marker(
-              markerId: MarkerId(station.id),
-              position: LatLng(station.latitude, station.longitude),
-              infoWindow: InfoWindow(title: station.name),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => StationDetailPage(
-                      stationId: station.id,
-                      stationName: station.name,
-                      lineName: station.lineName,
-                      latitude: station.latitude,
-                      longitude: station.longitude,
-                    ),
-                  ),
-                );
-              },
-            );
-          }).toSet();
+          final stations = snapshot.data ?? [];
 
           return GoogleMap(
             initialCameraPosition: CameraPosition(
               target: _currentPosition,
               zoom: 13,
             ),
-            markers: markers,
+            markers: _buildMarkers(stations),
             myLocationEnabled: true,
-            onMapCreated: (controller) {
-              _mapController = controller;
-            },
+            myLocationButtonEnabled: false,
+            zoomControlsEnabled: false,
+            onMapCreated: (controller) => _mapController = controller,
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _loadLocation,
-        child: const Icon(Icons.my_location),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton.small(
+            heroTag: 'zoom_in',
+            backgroundColor: Colors.blueGrey.shade800,
+            onPressed: () => _mapController?.animateCamera(
+              CameraUpdate.zoomIn(),
+            ),
+            child: const Icon(Icons.add, color: Colors.white),
+          ),
+          const SizedBox(height: 8),
+          FloatingActionButton.small(
+            heroTag: 'zoom_out',
+            backgroundColor: Colors.blueGrey.shade800,
+            onPressed: () => _mapController?.animateCamera(
+              CameraUpdate.zoomOut(),
+            ),
+            child: const Icon(Icons.remove, color: Colors.white),
+          ),
+          const SizedBox(height: 8),
+          FloatingActionButton(
+            heroTag: 'my_location',
+            backgroundColor: Colors.blueGrey.shade800,
+            onPressed: _loadLocation,
+            tooltip: 'Centrar na minha localização',
+            child: const Icon(Icons.my_location, color: Colors.white),
+          ),
+        ],
       ),
     );
   }

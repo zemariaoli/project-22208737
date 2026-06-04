@@ -21,6 +21,39 @@ class _ListScreenState extends State<ListScreen> {
     _stationsFuture = context.read<MetroRepository>().getStations();
   }
 
+  List<String> _extractLineNames(String lineName) {
+    var cleaned = lineName
+        .replaceAll('[', '')
+        .replaceAll(']', '')
+        .replaceAll('"', '')
+        .replaceAll("'", '')
+        .trim();
+
+    cleaned = cleaned.replaceAll(
+      RegExp(r'\bLinha\b', caseSensitive: false),
+      '',
+    );
+
+    return cleaned
+        .split(RegExp(r'\s*(?:,|;|/|\||\be\b)\s*', caseSensitive: false))
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .map(_capitalize)
+        .toList();
+  }
+
+  String _capitalize(String text) {
+    if (text.isEmpty) return text;
+
+    return text
+        .split(' ')
+        .where((word) => word.isNotEmpty)
+        .map((word) {
+      return word[0].toUpperCase() + word.substring(1).toLowerCase();
+    })
+        .join(' ');
+  }
+
   String formatLineName(String lineName) {
     final lines = _extractLineNames(lineName);
 
@@ -42,44 +75,14 @@ class _ListScreenState extends State<ListScreen> {
     return 'Linha $firstLines e $lastLine';
   }
 
-  List<String> _extractLineNames(String lineName) {
-    final line = lineName
-        .replaceAll('[', '')
-        .replaceAll(']', '')
-        .replaceAll('"', '')
-        .replaceAll("'", '')
-        .replaceAll('Linha', '')
-        .replaceAll('linha', '')
-        .toLowerCase();
-
-    final lineMap = <String, String>{
-      'azul': 'Azul',
-      'amarela': 'Amarela',
-      'verde': 'Verde',
-      'vermelha': 'Vermelha',
-    };
-
-    final foundLines = <MapEntry<int, String>>[];
-
-    lineMap.forEach((key, value) {
-      final index = line.indexOf(key);
-
-      if (index != -1) {
-        foundLines.add(MapEntry(index, value));
-      }
-    });
-
-    foundLines.sort((a, b) => a.key.compareTo(b.key));
-
-    return foundLines.map((entry) => entry.value).toList();
-  }
-
   List<Station> _filterStations(List<Station> stations) {
     final query = searchStation.toLowerCase();
 
     return stations.where((station) {
-      return station.name.toLowerCase().contains(query) ||
-          formatLineName(station.lineName).toLowerCase().contains(query);
+      final stationName = station.name.toLowerCase();
+      final lineName = formatLineName(station.lineName).toLowerCase();
+
+      return stationName.contains(query) || lineName.contains(query);
     }).toList();
   }
 
@@ -102,7 +105,11 @@ class _ListScreenState extends State<ListScreen> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: TextField(
-        onChanged: (value) => setState(() => searchStation = value),
+        onChanged: (value) {
+          setState(() {
+            searchStation = value;
+          });
+        },
         decoration: InputDecoration(
           hintText: 'Pesquisar estação...',
           prefixIcon: const Icon(Icons.search),
@@ -140,13 +147,20 @@ class _ListScreenState extends State<ListScreen> {
         borderRadius: BorderRadius.circular(16),
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 4,
+        ),
         leading: _buildLineAvatar(station),
         title: Text(
           station.name,
-          style: const TextStyle(fontWeight: FontWeight.w500),
+          style: const TextStyle(
+            fontWeight: FontWeight.w500,
+          ),
         ),
-        subtitle: Text(formatLineName(station.lineName)),
+        subtitle: Text(
+          formatLineName(station.lineName),
+        ),
         trailing: const Icon(Icons.chevron_right),
         onTap: () => _navigateToDetail(context, station),
       ),
@@ -188,7 +202,7 @@ class _ListScreenState extends State<ListScreen> {
 
   Widget _avatarText(Station station) {
     return Text(
-      station.name[0].toUpperCase(),
+      station.name.isNotEmpty ? station.name[0].toUpperCase() : '?',
       style: const TextStyle(
         color: Colors.white,
         fontWeight: FontWeight.bold,
@@ -200,25 +214,33 @@ class _ListScreenState extends State<ListScreen> {
   List<Color> _lineColors(String lineName) {
     final lines = _extractLineNames(lineName);
 
-    final colors = <Color>[];
-
-    for (final line in lines) {
-      if (line == 'Azul') {
-        colors.add(Colors.blue);
-      } else if (line == 'Amarela') {
-        colors.add(Colors.amber);
-      } else if (line == 'Verde') {
-        colors.add(Colors.green);
-      } else if (line == 'Vermelha') {
-        colors.add(Colors.red);
-      }
+    if (lines.isEmpty) {
+      return [Colors.blueGrey];
     }
 
-    if (colors.isEmpty) {
-      colors.add(Colors.blueGrey);
+    return lines.map(_colorFromLineName).toList();
+  }
+
+  Color _colorFromLineName(String lineName) {
+    final normalized = lineName.toLowerCase().trim();
+
+    if (normalized == 'azul') {
+      return Colors.blue;
     }
 
-    return colors;
+    if (normalized == 'amarela' || normalized == 'amarelo') {
+      return Colors.amber;
+    }
+
+    if (normalized == 'verde') {
+      return Colors.green;
+    }
+
+    if (normalized == 'vermelha' || normalized == 'vermelho') {
+      return Colors.red;
+    }
+
+    return Colors.blueGrey;
   }
 
   Widget _buildList(List<Station> filteredStations) {
@@ -226,8 +248,9 @@ class _ListScreenState extends State<ListScreen> {
       key: const Key('list-view'),
       itemCount: filteredStations.length,
       separatorBuilder: (_, __) => const Divider(height: 1),
-      itemBuilder: (context, index) =>
-          _buildStationTile(context, filteredStations[index]),
+      itemBuilder: (context, index) {
+        return _buildStationTile(context, filteredStations[index]);
+      },
     );
   }
 
@@ -241,7 +264,7 @@ class _ListScreenState extends State<ListScreen> {
             Icon(Icons.wifi_off, size: 48, color: Colors.grey),
             SizedBox(height: 16),
             Text(
-              'Não foi possível obter as estações de metro.\nVerifique a conectividade e volte a tentar.',
+              'Não foi possível obter as estações de metro. Verifique a conectividade e volte a tentar',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey),
             ),
@@ -258,7 +281,9 @@ class _ListScreenState extends State<ListScreen> {
       appBar: AppBar(
         title: const Text(
           'Estações',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
         elevation: 0,
@@ -284,7 +309,9 @@ class _ListScreenState extends State<ListScreen> {
                 future: _stationsFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
                   }
 
                   if (snapshot.hasError) {
@@ -297,15 +324,15 @@ class _ListScreenState extends State<ListScreen> {
                     return _buildErrorMessage();
                   }
 
-                  final filtered = _filterStations(stations);
+                  final filteredStations = _filterStations(stations);
 
-                  if (filtered.isEmpty) {
+                  if (filteredStations.isEmpty) {
                     return const Center(
                       child: Text('Sem estações disponíveis.'),
                     );
                   }
 
-                  return _buildList(filtered);
+                  return _buildList(filteredStations);
                 },
               ),
             ),
