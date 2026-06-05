@@ -11,13 +11,12 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-
   Future<List<Station>>? _stationsFuture;
 
   @override
   void initState() {
     super.initState();
-    context.read<MetroRepository>().getStations();
+    _stationsFuture = context.read<MetroRepository>().getStations();
   }
 
   @override
@@ -62,19 +61,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
               totalIncidents
               : 0.0;
 
-          Station? topStation;
-          int maxIncidents = 0;
+          // 🔥 CORREÇÃO 2: Lógica para descobrir o NOME da estação com mais incidentes
+          int maxIncidents = -1;
+          String stationWithMostIncidents = 'Nenhuma';
+
           for (final s in stations) {
             if (s.reports.length > maxIncidents) {
               maxIncidents = s.reports.length;
-              topStation = s;
+              stationWithMostIncidents = s.name;
             }
           }
 
-          final lineCount = stations
-              .map((s) => s.lineName)
-              .toSet()
-              .length;
+          final lineCount = stations.map((s) => s.lineName).toSet().length;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -89,29 +87,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   avgRating: avgRating,
                   lineCount: lineCount,
                 ),
+
+                // 🔥 CORREÇÃO 3: Adicionar o widget que mostra a estação crítica
                 const SizedBox(height: 20),
-                _buildSectionTitle('Destaque'),
+                _buildSectionTitle('Alertas da Rede'),
                 const SizedBox(height: 8),
-                topStation != null
-                    ? _buildTopStationCard(topStation, maxIncidents)
-                    : _buildEmptyCard('Sem incidentes registados ainda.'),
+                _buildCriticalStationCard(stationWithMostIncidents),
+
                 const SizedBox(height: 20),
                 _buildSectionTitle('Linhas'),
                 const SizedBox(height: 8),
                 _buildLinesCard(stations),
 
                 const SizedBox(height: 20),
-
                 _buildSectionTitle('Mapa da Rede'),
                 const SizedBox(height: 8),
                 _buildMetroMapCard(),
 
                 const SizedBox(height: 20),
-
                 _buildSectionTitle('Sabia que...'),
                 const SizedBox(height: 8),
-
                 _buildFactCard(),
+
                 const SizedBox(height: 20),
                 _buildSectionTitle('O que dizem os utilizadores'),
                 const SizedBox(height: 8),
@@ -125,83 +122,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildMetroMapCard() {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.blueGrey.shade50,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.map_outlined,
-                      color: Colors.blueGrey.shade700,
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Mapa Oficial do Metro',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Explore todas as linhas e estações da rede metropolitana de Lisboa. Pode ampliar o mapa para uma visualização mais detalhada.',
-                  style: TextStyle(
-                    color: Colors.grey.shade700,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          ClipRRect(
-            borderRadius: const BorderRadius.only(
-              bottomLeft: Radius.circular(12),
-              bottomRight: Radius.circular(12),
-            ),
-            child: InteractiveViewer(
-              minScale: 1,
-              maxScale: 5,
-              child: Image.asset(
-                'img.png',
-                width: double.infinity,
-                fit: BoxFit.contain,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildHeader() {
     return Container(
@@ -209,10 +129,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [
-            Color(0xFF8E0000),
-            Color(0xFFC62828),
-          ],
+          colors: [Color(0xFF8E0000), Color(0xFFC62828)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -226,26 +143,59 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Bem-vindo',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
-                ),
+                Text('Bem-vindo', style: TextStyle(color: Colors.white70, fontSize: 14)),
                 Text(
                   'Metro de Lisboa',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                 ),
                 Text(
                   'Informação, estatísticas e monitorização da rede',
-                  style: TextStyle(
-                    color: Colors.white60,
-                    fontSize: 12,
+                  style: TextStyle(color: Colors.white60, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // CARD METRO DE LISBOA
+
+  Widget _buildCriticalStationCard(String stationName) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.report_problem, color: Colors.red.shade800, size: 30),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Estação com mais incidentes:',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  stationName,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87, // 🔥 Corrigido para black87 (que é uma constante válida)
                   ),
                 ),
               ],
@@ -255,6 +205,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
   }
+
 
   Widget _buildStatsRow({
     required int totalStations,
@@ -334,18 +285,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 6),
           Text(
             value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color),
           ),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
             textAlign: TextAlign.center,
           ),
         ],
@@ -353,76 +297,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildTopStationCard(Station station, int incidentCount) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.orange.shade50,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              Icons.emoji_events,
-              color: Colors.orange.shade700,
-              size: 32,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Mais incidentes registados',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                Text(
-                  station.name,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  'Linha ${station.lineName}',
-                  style: TextStyle(color: Colors.grey.shade600),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.orange.shade700,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              '$incidentCount',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
+  // LINHAS:
+
 
   Widget _buildLinesCard(List<Station> stations) {
     final lines = <String, int>{};
@@ -461,10 +338,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               .value;
 
           return ListTile(
-            leading: CircleAvatar(
-              backgroundColor: color,
-              radius: 12,
-            ),
+            leading: CircleAvatar(backgroundColor: color, radius: 12),
             title: Text('Linha ${entry.key}'),
             trailing: Text(
               '${entry.value} estações',
@@ -476,6 +350,88 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+
+  // IMAGEM DAS LINHAS
+
+  Widget _buildMetroMapCard() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.blueGrey.shade50,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.map_outlined,
+                      color: Colors.blueGrey.shade700,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Mapa Oficial do Metro',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Explore todas as linhas e estações da rede metropolitana de Lisboa.',
+                  style: TextStyle(
+                    color: Colors.grey.shade700,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ClipRRect(
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(12),
+              bottomRight: Radius.circular(12),
+            ),
+            child: InteractiveViewer(
+              minScale: 1,
+              maxScale: 5,
+              child: Image.asset(
+                'img.png',
+                width: double.infinity,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  //SABIA QUE...
+
   Widget _buildFactCard() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -484,11 +440,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.blueGrey.shade200),
       ),
-      child: Row(
+      child: const Row(
         children: [
-          Icon(Icons.info_outline, color: const Color(0xFFB71C1C), size: 28),
-          const SizedBox(width: 12),
-          const Expanded(
+          Icon(Icons.info_outline, color: Color(0xFFB71C1C), size: 28),
+          SizedBox(width: 12),
+          Expanded(
             child: Text(
               'O Metro de Lisboa transporta mais de 170 milhões de passageiros por ano, sendo um dos mais modernos da Europa.',
               style: TextStyle(fontSize: 14),
@@ -499,20 +455,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // O QUE DIZEM OS UTILIZADORES:
+
+
   Widget _buildReviewsCard() {
     final reviews = [
-      (
-      icon: '🗣️',
-      text: '"Linha Azul sempre pontual e muito organizada!"'
-      ),
-      (
-      icon: '🗣️',
-      text: '"Estação do Oriente muito bem sinalizada e acessível!"'
-      ),
-      (
-      icon: '🗣️',
-      text: '"Aplicação muito útil para reportar problemas rapidamente."'
-      ),
+      (icon: '🗣️', text: '"Linha Azul sempre pontual e muito organizada!"'),
+      (icon: '🗣️', text: '"Estação do Oriente muito bem sinalizada e acessível!"'),
+      (icon: '🗣️', text: '"Aplicação muito útil para reportar problemas rapidamente."'),
     ];
 
     return Container(
@@ -534,10 +484,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             leading: Text(r.icon, style: const TextStyle(fontSize: 20)),
             title: Text(
               r.text,
-              style: const TextStyle(
-                fontStyle: FontStyle.italic,
-                fontSize: 13,
-              ),
+              style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 13),
             ),
           ),
         )
@@ -549,22 +496,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: const TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-        color: const Color(0xFFB71C1C),
-      ),
-    );
-  }
-
-  Widget _buildEmptyCard(String message) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(message, style: const TextStyle(color: Colors.grey)),
+      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFFB71C1C)),
     );
   }
 
@@ -575,12 +507,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           Icon(Icons.wifi_off, size: 48, color: Colors.grey),
           SizedBox(height: 12),
-          Text(
-            'Não foi possível carregar os dados.',
-            style: TextStyle(color: Colors.grey),
-          ),
+          Text('Não foi possível carregar os dados.', style: TextStyle(color: Colors.grey)),
         ],
       ),
     );
   }
+
+
 }

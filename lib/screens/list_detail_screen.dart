@@ -30,13 +30,24 @@ class _StationDetailPageState extends State<StationDetailPage> {
   Future<Station?> _stationFuture = Future.value(null);
   Future<List<Map<String, dynamic>>> _waitTimesFuture = Future.value([]);
   double? _distanceMeters;
+  String? _lastUpdateTime; // Guarda a hora da última atualização dos tempos de espera
 
   @override
   void initState() {
     super.initState();
     final repository = context.read<MetroRepository>();
     _stationFuture = repository.getStation(widget.stationId);
-    _waitTimesFuture = repository.getWaitTimes(widget.stationId);
+
+    // Configura o Future e regista a hora assim que os dados chegarem (online ou offline)
+    _waitTimesFuture = repository.getWaitTimes(widget.stationId).then((data) {
+      if (mounted && data.isNotEmpty) {
+        setState(() {
+          _lastUpdateTime = DateFormat('HH:mm').format(DateTime.now());
+        });
+      }
+      return data;
+    });
+
     _loadDistance();
   }
 
@@ -60,10 +71,12 @@ class _StationDetailPageState extends State<StationDetailPage> {
     return 'Linha $lineName';
   }
 
-  Widget _buildSectionTitle(String title) {
+  // Atualizado para aceitar um "suffix" opcional com estilo mais leve
+  Widget _buildSectionTitle(String title, {String? suffix}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
             width: 4,
@@ -82,6 +95,17 @@ class _StationDetailPageState extends State<StationDetailPage> {
               color: Color(0xFFB71C1C),
             ),
           ),
+          if (suffix != null) ...[
+            const SizedBox(width: 6),
+            Text(
+              suffix,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -428,7 +452,15 @@ class _StationDetailPageState extends State<StationDetailPage> {
               children: [
                 _buildStationCard(station, avgRating),
                 const SizedBox(height: 24),
-                _buildSectionTitle('Tempos de espera'),
+
+                // TÍTULO DA SECÇÃO ATUALIZADO: Passa a nota dinamicamente se ela existir
+                _buildSectionTitle(
+                  'Tempos de espera',
+                  suffix: _lastUpdateTime != null
+                      ? '(última atualização: $_lastUpdateTime)'
+                      : null,
+                ),
+
                 _buildWaitTimesSection(),
                 const SizedBox(height: 24),
                 _buildSectionTitle('Incidentes'),

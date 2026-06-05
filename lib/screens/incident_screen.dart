@@ -40,9 +40,19 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
     });
   }
 
+
   Future<void> _submitForm(MetroRepository repository) async {
-    if (!_formKey.currentState!.validate()) return;
+    // LOG 1: Verificar se o botão está a funcionar
+    debugPrint('--- [DEBUG] Botão Submeter pressionado ---');
+
+    if (!_formKey.currentState!.validate()) {
+      // LOG 2: O formulário falhou na validação visual
+      debugPrint('--- [DEBUG] Erro: O formulário NÃO é válido! ---');
+      return;
+    }
+
     _formKey.currentState!.save();
+    debugPrint('--- [DEBUG] Formulário validado e guardado com sucesso ---');
 
     final report = IncidentReport(
       timestamp: _dateTime!,
@@ -51,29 +61,48 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
       type: _type!,
     );
 
-    final messenger = ScaffoldMessenger.of(context);
+    try {
+      debugPrint('--- [DEBUG] A iniciar chamada ao repositório... ---');
+      await repository.attachIncident(_station!.id, report);
+      debugPrint('--- [DEBUG] Sucesso no repositório! ---');
+    } catch (erro) {
+      // LOG 3: Se a tua API ou Base de Dados der erro, vai cair aqui
+      debugPrint('--- [DEBUG] ERRO GRAVE NO REPOSITÓRIO: $erro ---');
 
-    await repository.attachIncident(_station!.id, report);
-
-    if (!mounted) return;
-
-    messenger.showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.white),
-            SizedBox(width: 8),
-            Text('Incidente submetido com sucesso'),
-          ],
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao submeter: $erro'),
+          backgroundColor: Colors.red,
         ),
-        backgroundColor: const Color(0xFF2E7D32),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        duration: const Duration(seconds: 3),
+      );
+      return;
+    }
+
+    // LOG 4: Verificar se o ecrã não foi fechado durante o 'await'
+    if (!mounted) {
+      debugPrint('--- [DEBUG] Erro: O widget já não está "mounted" na árvore! ---');
+      return;
+    }
+
+    debugPrint('--- [DEBUG] A disparar a SnackBar de sucesso... ---');
+
+    // Limpa qualquer SnackBar pendente antes de mostrar a nova
+    ScaffoldMessenger.of(context).clearSnackBars();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Incidente submetido'),
+        duration: Duration(seconds: 2),
       ),
     );
 
-    _resetForm();
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        _resetForm();
+        debugPrint('--- [DEBUG] Formulário limpo e reiniciado ---');
+      }
+    });
   }
 
   Widget _buildLabel(String text) {

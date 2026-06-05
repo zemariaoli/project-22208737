@@ -32,6 +32,12 @@ class MetroRepository extends ChangeNotifier {
       // Tenta guardar localmente mas não falha se não conseguir
       try {
         await local.saveStations(stations);
+
+        // 🔥 NOVO: Dispara o pré-carregamento de todos os tempos de espera em background.
+        // NOTA: Não usamos "await" aqui de propósito! Queremos que corra em segundo plano
+        // para que o ecrã principal da app abra instantaneamente sem ficar a aguardar por isto.
+        _prefetchAllWaitTimes(stations);
+
       } catch (_) {}
       _cachedStations = stations;
       return _cachedStations;
@@ -40,6 +46,31 @@ class MetroRepository extends ChangeNotifier {
     _cachedStations = await local.getStations();
     return _cachedStations;
   }
+
+  Future<void> _prefetchAllWaitTimes(List<Station> stations) async {
+    if (generic == null) return;
+
+    // Percorre todas as estações existentes e saca os tempos de espera de cada uma
+    for (final station in stations) {
+      try {
+        final result = await generic!.execute(
+          type: GenericOperationType.GetWaitTimes,
+          data: station.id,
+        );
+
+        if (result != null) {
+          final waitTimes = (result as List<dynamic>).cast<Map<String, dynamic>>();
+          // Grava silenciosamente no SQLite
+          await local.saveWaitTimes(station.id, waitTimes);
+        }
+      } catch (e) {
+        // Se falhar uma estação (ex: timeout ou erro de API), continua para a próxima
+        debugPrint('Erro ao pré-carregar tempos para a estação ${station.id}: $e');
+      }
+    }
+    debugPrint(' Sincronização em massa de tempos de espera concluída com sucesso!');
+  }
+
 
   Future<List<Station>> getAllStations() async {
     return local.getAllStations();
@@ -60,15 +91,32 @@ class MetroRepository extends ChangeNotifier {
   }
 
   Future<List<Map<String, dynamic>>> getWaitTimes(String stationId) async {
-    if (generic == null) return [];
+    // 1. Verifica se o telemóvel tem internet
+    final isOnline = await connectivity.isConnected();
 
-    final result = await generic!.execute(
-      type: GenericOperationType.GetWaitTimes,
-      data: stationId,
-    );
+    if (isOnline && generic != null) {
+      try {
+        // 2. Se estiver online, vai buscar à API remota
+        final result = await generic!.execute(
+          type: GenericOperationType.GetWaitTimes,
+          data: stationId,
+        );
 
-    if (result == null) return [];
-    return (result as List<dynamic>).cast<Map<String, dynamic>>();
+        if (result != null) {
+          final waitTimes = (result as List<dynamic>).cast<Map<String, dynamic>>();
+
+          // 3. GRAVA NO SQLITE para ficar guardado para quando ficar offline
+          await local.saveWaitTimes(stationId, waitTimes);
+
+          return waitTimes;
+        }
+      } catch (e) {
+        debugPrint('Erro ao buscar tempos online: $e. A tentar ler do banco local...');
+      }
+    }
+
+    // 4. Se estiver offline (ou se a API falhar), faz o Fallback para o SQLite local
+    return await local.getWaitTimes(stationId);
   }
 
 
@@ -98,7 +146,7 @@ class MetroRepository extends ChangeNotifier {
       _cachedStations[index].reports.add(report);
     }
 
-    await local.attachIncident(id, report);;
+    await local.attachIncident(id, report);
 
     notifyListeners();
   }

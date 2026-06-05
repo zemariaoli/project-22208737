@@ -41,28 +41,53 @@ class MainScreenState extends State<MainPage> {
     return Scaffold(
       body: _buildScreen(selectedIndex),
       bottomNavigationBar: NavigationBar(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+        elevation: 8,
+
+        indicatorColor: const Color(0xFFB71C1C),
+
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+
         selectedIndex: selectedIndex,
         onDestinationSelected: onItemTapped,
+
         destinations: const [
           NavigationDestination(
             key: Key('dashboard-bottom-bar-item'),
-            icon: Icon(Icons.dashboard),
+            icon: Icon(Icons.dashboard_outlined),
+            selectedIcon: Icon(
+              Icons.dashboard,
+              color: Colors.white,
+            ),
             label: 'Dashboard',
           ),
           NavigationDestination(
             key: Key('list-bottom-bar-item'),
-            icon: Icon(Icons.list),
-            label: 'List',
+            icon: Icon(Icons.list_alt_outlined),
+            selectedIcon: Icon(
+              Icons.list_alt,
+              color: Colors.white,
+            ),
+            label: 'Lista',
           ),
           NavigationDestination(
             key: Key('map-bottom-bar-item'),
-            icon: Icon(Icons.map),
-            label: 'Map',
+            icon: Icon(Icons.map_outlined),
+            selectedIcon: Icon(
+              Icons.map,
+              color: Colors.white,
+            ),
+            label: 'Mapa',
           ),
           NavigationDestination(
             key: Key('incidents-report-bottom-bar-item'),
-            icon: Icon(Icons.report),
-            label: 'Incidents',
+            icon: Icon(Icons.report_outlined),
+            selectedIcon: Icon(
+              Icons.report,
+              color: Colors.white,
+            ),
+            label: 'Incidentes',
           ),
         ],
       ),
