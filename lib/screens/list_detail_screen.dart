@@ -6,6 +6,9 @@ import 'package:cmproject/location_module.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+/// Ecrã de detalhe de uma estação do Metro de Lisboa.
+/// Apresenta informações da estação, tempos de espera dos comboios
+/// e incidentes reportados.
 class StationDetailPage extends StatefulWidget {
   final String stationId;
   final String stationName;
@@ -27,18 +30,33 @@ class StationDetailPage extends StatefulWidget {
 }
 
 class _StationDetailPageState extends State<StationDetailPage> {
+  // ─── Futures para carregamento assíncrono ─────────────────────────────────
+
+  /// Future para carregar os dados da estação.
   Future<Station?> _stationFuture = Future.value(null);
+
+  /// Future para carregar os tempos de espera dos comboios.
   Future<List<Map<String, dynamic>>> _waitTimesFuture = Future.value([]);
+
+  // ─── Estado local ─────────────────────────────────────────────────────────
+
+  /// Distância em metros entre o utilizador e a estação.
   double? _distanceMeters;
-  String? _lastUpdateTime; // Guarda a hora da última atualização dos tempos de espera
+
+  /// Hora da última atualização dos tempos de espera (formato HH:mm).
+  String? _lastUpdateTime;
+
+  // ─── Ciclo de vida ────────────────────────────────────────────────────────
 
   @override
   void initState() {
     super.initState();
     final repository = context.read<MetroRepository>();
+
+    // Carrega os dados da estação
     _stationFuture = repository.getStation(widget.stationId);
 
-    // Configura o Future e regista a hora assim que os dados chegarem (online ou offline)
+    // Carrega os tempos de espera e regista a hora quando chegarem
     _waitTimesFuture = repository.getWaitTimes(widget.stationId).then((data) {
       if (mounted && data.isNotEmpty) {
         setState(() {
@@ -48,9 +66,13 @@ class _StationDetailPageState extends State<StationDetailPage> {
       return data;
     });
 
+    // Calcula a distância à estação em segundo plano
     _loadDistance();
   }
 
+  // ─── Lógica de localização ────────────────────────────────────────────────
+
+  /// Obtém a posição atual do utilizador e calcula a distância à estação.
   Future<void> _loadDistance() async {
     final locationModule = context.read<LocationModule>();
     final position = await locationModule.getCurrentPosition();
@@ -66,18 +88,33 @@ class _StationDetailPageState extends State<StationDetailPage> {
     setState(() => _distanceMeters = distance);
   }
 
+  // ─── Utilitários ──────────────────────────────────────────────────────────
+
+  /// Garante que o nome da linha começa sempre com "Linha ".
   String formatLineName(String lineName) {
     if (lineName.startsWith('Linha ')) return lineName;
     return 'Linha $lineName';
   }
 
-  // Atualizado para aceitar um "suffix" opcional com estilo mais leve
+  /// Devolve a cor do badge do tempo de espera consoante a urgência:
+  /// verde (<= 60s), laranja (<= 180s) ou vermelho (> 180s).
+  Color _waitTimeColor(dynamic time) {
+    final seconds = int.tryParse(time.toString()) ?? 0;
+    if (seconds <= 60) return Colors.green.shade600;
+    if (seconds <= 180) return Colors.orange.shade600;
+    return Colors.red.shade600;
+  }
+
+  // ─── Widgets auxiliares ───────────────────────────────────────────────────
+
+  /// Título de secção com barra vermelha lateral e sufixo opcional.
   Widget _buildSectionTitle(String title, {String? suffix}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          // Barra vermelha decorativa
           Container(
             width: 4,
             height: 18,
@@ -95,6 +132,7 @@ class _StationDetailPageState extends State<StationDetailPage> {
               color: Color(0xFFB71C1C),
             ),
           ),
+          // Sufixo opcional (ex: hora de atualização)
           if (suffix != null) ...[
             const SizedBox(width: 6),
             Text(
@@ -111,6 +149,7 @@ class _StationDetailPageState extends State<StationDetailPage> {
     );
   }
 
+  /// Card com as informações principais da estação (nome, linha, distância, média).
   Widget _buildStationCard(Station station, double? avgRating) {
     return Card(
       elevation: 2,
@@ -119,6 +158,7 @@ class _StationDetailPageState extends State<StationDetailPage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            // Nome e linha da estação
             Row(
               children: [
                 const Icon(Icons.train, color: Colors.blueGrey, size: 32),
@@ -144,6 +184,7 @@ class _StationDetailPageState extends State<StationDetailPage> {
               ],
             ),
             const Divider(height: 24),
+            // Chips de distância e média de incidentes
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -167,6 +208,7 @@ class _StationDetailPageState extends State<StationDetailPage> {
     );
   }
 
+  /// Chip de informação com ícone, valor e label.
   Widget _buildInfoChip(IconData icon, String value, String label) {
     return Column(
       children: [
@@ -181,17 +223,13 @@ class _StationDetailPageState extends State<StationDetailPage> {
     );
   }
 
-  Color _waitTimeColor(dynamic time) {
-    final seconds = int.tryParse(time.toString()) ?? 0;
-    if (seconds <= 60) return Colors.green.shade600;
-    if (seconds <= 180) return Colors.orange.shade600;
-    return Colors.red.shade600;
-  }
-
+  /// Secção de tempos de espera, agrupada por cais.
+  /// Cada cais tem um header com cor e os comboios listados por baixo.
   Widget _buildWaitTimesSection() {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _waitTimesFuture,
       builder: (context, snapshot) {
+        // A carregar
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Padding(
             padding: EdgeInsets.symmetric(vertical: 8),
@@ -201,6 +239,7 @@ class _StationDetailPageState extends State<StationDetailPage> {
 
         final waitTimes = snapshot.data ?? [];
 
+        // Sem dados disponíveis
         if (waitTimes.isEmpty) {
           return Container(
             padding: const EdgeInsets.all(16),
@@ -222,7 +261,8 @@ class _StationDetailPageState extends State<StationDetailPage> {
           );
         }
 
-        // Agrupa por cais
+        // Agrupa os comboios por cais
+        // Cada entrada da API pode ter até 3 comboios (comboio, comboio2, comboio3)
         final Map<String, List<Map<String, dynamic>>> byCais = {};
         for (final wt in waitTimes) {
           final cais = wt['cais'] ?? 'Desconhecido';
@@ -247,7 +287,7 @@ class _StationDetailPageState extends State<StationDetailPage> {
             });
           }
 
-          // Ordena por tempo
+          // Ordena os comboios de cada cais por tempo de chegada crescente
           byCais[cais]!.sort((a, b) {
             final ta = int.tryParse(a['tempo'].toString()) ?? 0;
             final tb = int.tryParse(b['tempo'].toString()) ?? 0;
@@ -255,6 +295,7 @@ class _StationDetailPageState extends State<StationDetailPage> {
           });
         }
 
+        // Renderiza um card por cais
         return Column(
           children: byCais.entries.map((entry) {
             final cais = entry.key;
@@ -303,7 +344,7 @@ class _StationDetailPageState extends State<StationDetailPage> {
                     ),
                   ),
 
-                  // Comboios do cais
+                  // Lista de comboios do cais
                   ...trains.asMap().entries.map((trainEntry) {
                     final index = trainEntry.key;
                     final train = trainEntry.value;
@@ -311,6 +352,8 @@ class _StationDetailPageState extends State<StationDetailPage> {
                         int.tryParse(train['tempo'].toString()) ?? 0;
                     final minutes = seconds ~/ 60;
                     final secs = seconds % 60;
+
+                    // Formata o tempo: "1m 37s" ou "45s"
                     final timeLabel =
                     minutes > 0 ? '${minutes}m ${secs}s' : '${secs}s';
 
@@ -332,8 +375,10 @@ class _StationDetailPageState extends State<StationDetailPage> {
                           ),
                           title: Text(
                             'Comboio ${train['comboio']}',
-                            style: const TextStyle(fontWeight: FontWeight.w500),
+                            style:
+                            const TextStyle(fontWeight: FontWeight.w500),
                           ),
+                          // Badge colorido com o tempo de espera
                           trailing: Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 6),
@@ -363,22 +408,23 @@ class _StationDetailPageState extends State<StationDetailPage> {
     );
   }
 
+  /// Card individual de um incidente reportado.
   Widget _buildIncidentTile(IncidentReport report) {
     final formattedDate =
     DateFormat('dd/MM/yyyy HH:mm').format(report.timestamp);
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       child: ListTile(
-        leading:
-        const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+        leading: const Icon(Icons.warning_amber_rounded, color: Colors.orange),
         title: Row(
           children: [
             Text(formattedDate),
             const SizedBox(width: 8),
+            // Badge com o tipo de incidente
             Container(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: Colors.blueGrey.shade100,
                 borderRadius: BorderRadius.circular(4),
@@ -390,6 +436,7 @@ class _StationDetailPageState extends State<StationDetailPage> {
             ),
           ],
         ),
+        // Notas do incidente (se existirem)
         subtitle: report.notes != null && report.notes!.isNotEmpty
             ? Text(report.notes!)
             : null,
@@ -397,6 +444,8 @@ class _StationDetailPageState extends State<StationDetailPage> {
     );
   }
 
+  /// Lista de incidentes da estação.
+  /// Usa shrinkWrap para funcionar dentro de um SingleChildScrollView.
   Widget _buildIncidentsSection(List<IncidentReport> reports) {
     return ListView.builder(
       key: const Key('detail-screen-incidents-list'),
@@ -407,8 +456,12 @@ class _StationDetailPageState extends State<StationDetailPage> {
     );
   }
 
+  // ─── Build principal ──────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
+    // context.watch deteta o notifyListeners do repositório
+    // (ex: quando um novo incidente é adicionado)
     final repository = context.watch<MetroRepository>();
 
     return Scaffold(
@@ -423,14 +476,19 @@ class _StationDetailPageState extends State<StationDetailPage> {
       body: FutureBuilder<Station?>(
         future: _stationFuture,
         builder: (context, snapshot) {
+          // A carregar
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
+
+          // Estação não encontrada
           if (snapshot.hasError || snapshot.data == null) {
             return const Center(child: Text('Estação não encontrada'));
           }
 
           final station = snapshot.data!;
+
+          // Combina incidentes do datasource com os adicionados na sessão atual
           final reportsFromStation = station.reports;
           final reportsFromSession =
           repository.getIncidents(widget.stationId);
@@ -440,6 +498,7 @@ class _StationDetailPageState extends State<StationDetailPage> {
                 .where((r) => !reportsFromStation.contains(r)),
           ];
 
+          // Calcula a média de avaliação dos incidentes
           final avgRating = reports.isEmpty
               ? null
               : reports.map((r) => r.rate).reduce((a, b) => a + b) /
@@ -450,19 +509,21 @@ class _StationDetailPageState extends State<StationDetailPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Card com os dados da estação
                 _buildStationCard(station, avgRating),
                 const SizedBox(height: 24),
 
-                // TÍTULO DA SECÇÃO ATUALIZADO: Passa a nota dinamicamente se ela existir
+                // Tempos de espera (com hora de atualização se disponível)
                 _buildSectionTitle(
                   'Tempos de espera',
                   suffix: _lastUpdateTime != null
                       ? '(última atualização: $_lastUpdateTime)'
                       : null,
                 ),
-
                 _buildWaitTimesSection(),
                 const SizedBox(height: 24),
+
+                // Incidentes reportados
                 _buildSectionTitle('Incidentes'),
                 _buildIncidentsSection(reports),
               ],

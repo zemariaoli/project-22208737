@@ -5,17 +5,29 @@ import 'package:cmproject/models/station.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
+/// Implementação local do MetroDataSource usando SQLite (via sqflite).
+/// Gere as tabelas de estações, incidentes e tempos de espera.
+/// Protegida contra uso em testes (onde o SQLite nativo não está disponível).
 class SqfliteMetroDataSource extends MetroDataSource {
+  // ─── Base de dados ────────────────────────────────────────────────────────
+
+  /// Instância da base de dados SQLite (null até init() ser chamado).
   Database? _db;
 
   SqfliteMetroDataSource();
 
+  // ─── Inicialização ────────────────────────────────────────────────────────
+
+  /// Abre (ou cria) a base de dados SQLite.
+  /// Deve ser chamado antes de qualquer outra operação.
+  /// Devolve true em caso de sucesso, false em caso de falha (ex: testes).
   Future<bool> init() async {
     try {
       _db = await openDatabase(
         join(await getDatabasesPath(), 'metro.db'),
         version: 3,
         onCreate: (db, version) async {
+          // Tabela de estações
           await db.execute('''
             CREATE TABLE stations (
               id TEXT PRIMARY KEY,
@@ -26,6 +38,7 @@ class SqfliteMetroDataSource extends MetroDataSource {
             )
           ''');
 
+          // Tabela de incidentes (relacionada com stations)
           await db.execute('''
             CREATE TABLE incidents (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,6 +51,7 @@ class SqfliteMetroDataSource extends MetroDataSource {
             )
           ''');
 
+          // Tabela de tempos de espera (JSON serializado por estação)
           await db.execute('''
             CREATE TABLE wait_times (
               station_id TEXT PRIMARY KEY,
@@ -46,6 +60,7 @@ class SqfliteMetroDataSource extends MetroDataSource {
           ''');
         },
         onUpgrade: (db, oldVersion, newVersion) async {
+          // Migração v1 → v2: adiciona tabela de incidentes
           if (oldVersion < 2) {
             await db.execute('''
               CREATE TABLE incidents (
@@ -59,6 +74,7 @@ class SqfliteMetroDataSource extends MetroDataSource {
               )
             ''');
           }
+          // Migração v2 → v3: adiciona tabela de tempos de espera
           if (oldVersion < 3) {
             await db.execute('''
               CREATE TABLE wait_times (
@@ -71,20 +87,23 @@ class SqfliteMetroDataSource extends MetroDataSource {
       );
       return true;
     } catch (_) {
-      // Falha silenciosamente em ambiente de teste onde o path/sqlite nativo não existe
+      // Falha silenciosa em ambiente de teste (SQLite nativo indisponível)
       return false;
     }
   }
 
+  /// Getter protegido da DB — lança exceção se init() não foi chamado.
   Database get db {
-    if (_db == null) throw Exception('Base de dados não inicializada. Chama init() primeiro.');
+    if (_db == null) {
+      throw Exception('Base de dados não inicializada. Chama init() primeiro.');
+    }
     return _db!;
   }
 
+  // ─── Estações ─────────────────────────────────────────────────────────────
+
   @override
-  Future<List<Station>> getStations() async {
-    return getAllStations();
-  }
+  Future<List<Station>> getStations() async => getAllStations();
 
   @override
   Future<List<Station>> getAllStations() async {
@@ -115,19 +134,22 @@ class SqfliteMetroDataSource extends MetroDataSource {
     }).toList();
   }
 
+  /// Devolve os detalhes de uma estação, incluindo os seus incidentes persistidos.
   @override
   Future<Station> getStationDetail(String id) async {
-    if (_db == null) throw Exception('Estação não encontrada'); // Fallback seguro
+    if (_db == null) throw Exception('Estação não encontrada');
 
     final result = await _db!.query(
       'stations',
       where: 'id = ?',
       whereArgs: [id],
     );
+
     if (result.isEmpty) throw Exception('Estação não encontrada');
 
     final station = Station.fromMap(result.first);
 
+    // Carrega os incidentes persistidos desta estação
     final incidentResult = await _db!.query(
       'incidents',
       where: 'station_id = ?',
@@ -147,6 +169,22 @@ class SqfliteMetroDataSource extends MetroDataSource {
     return station;
   }
 
+  /// Guarda a lista completa de estações (apaga as anteriores).
+  Future<void> saveStations(List<Station> stations) async {
+    if (_db == null) return; // Proteção para testes
+    await _db!.delete('stations');
+    for (final station in stations) {
+      await _db!.insert(
+        'stations',
+        station.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+  }
+
+  // ─── Incidentes ───────────────────────────────────────────────────────────
+
+  /// Persiste um incidente na tabela de incidents.
   @override
   Future<void> attachIncident(String id, IncidentReport report) async {
     if (_db == null) return; // Proteção para testes
@@ -162,22 +200,28 @@ class SqfliteMetroDataSource extends MetroDataSource {
     );
   }
 
-  Future<void> saveWaitTimes(String stationId, List<Map<String, dynamic>> waitTimes) async {
-    if (_db == null) return; // Proteção para testes: ignora a escrita se a BD não existir
+  // ─── Tempos de espera ─────────────────────────────────────────────────────
 
-    final String encodedData = jsonEncode(waitTimes);
+  /// Guarda os tempos de espera de uma estação como JSON na DB.
+  /// Usa REPLACE para atualizar se já existir um registo para essa estação.
+  Future<void> saveWaitTimes(
+      String stationId, List<Map<String, dynamic>> waitTimes) async {
+    if (_db == null) return; // Proteção para testes
+
     await _db!.insert(
       'wait_times',
       {
         'station_id': stationId,
-        'json_data': encodedData,
+        'json_data': jsonEncode(waitTimes),
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
+  /// Lê os tempos de espera de uma estação da DB local.
+  /// Devolve lista vazia se não houver dados guardados.
   Future<List<Map<String, dynamic>>> getWaitTimes(String stationId) async {
-    if (_db == null) return []; // 🔥 SOLUÇÃO DO ERRO: Se estiver em ambiente de teste, devolve vazio em vez de crashar!
+    if (_db == null) return []; // Proteção para testes
 
     final result = await _db!.query(
       'wait_times',
@@ -187,22 +231,8 @@ class SqfliteMetroDataSource extends MetroDataSource {
 
     if (result.isEmpty) return [];
 
-    final String encodedData = result.first['json_data'] as String;
-    final List<dynamic> decodedList = jsonDecode(encodedData);
-
-    return decodedList.cast<Map<String, dynamic>>();
-  }
-
-  Future<void> saveStations(List<Station> stations) async {
-    if (_db == null) return; // Proteção para testes
-
-    await _db!.delete('stations');
-    for (final station in stations) {
-      await _db!.insert(
-        'stations',
-        station.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-    }
+    final List<dynamic> decoded =
+    jsonDecode(result.first['json_data'] as String);
+    return decoded.cast<Map<String, dynamic>>();
   }
 }
