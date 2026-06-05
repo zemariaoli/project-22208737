@@ -127,13 +127,13 @@ class _ListScreenState extends State<ListScreen> {
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(
+            borderSide: const BorderSide(
               color: Color(0xFFE0E0E0),
             ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(
+            borderSide: const BorderSide(
               color: Color(0xFFB71C1C),
               width: 2,
             ),
@@ -143,6 +143,7 @@ class _ListScreenState extends State<ListScreen> {
     );
   }
 
+  // 🔥 MÉTODO CORRIGIDO: Adicionado o Material wrapper para evitar o erro do splash escondido
   Widget _buildStationTile(BuildContext context, Station station) {
     return Container(
       margin: const EdgeInsets.symmetric(
@@ -166,31 +167,36 @@ class _ListScreenState extends State<ListScreen> {
           ),
         ],
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 6,
-        ),
-        leading: _buildLineAvatar(station),
-        title: Text(
-          station.name,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 15,
+      child: Material(
+        color: Colors.transparent,
+        clipBehavior: Clip.antiAlias,
+        borderRadius: BorderRadius.circular(16), // Acompanha o raio do Container
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 6,
           ),
-        ),
-        subtitle: Text(
-          formatLineName(station.lineName),
-          style: TextStyle(
-            color: Colors.grey.shade600,
+          leading: _buildLineAvatar(station),
+          title: Text(
+            station.name,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+            ),
           ),
+          subtitle: Text(
+            formatLineName(station.lineName),
+            style: TextStyle(
+              color: Colors.grey.shade600,
+            ),
+          ),
+          trailing: const Icon(
+            Icons.arrow_forward_ios_rounded,
+            size: 16,
+            color: Color(0xFFB71C1C),
+          ),
+          onTap: () => _navigateToDetail(context, station),
         ),
-        trailing: const Icon(
-          Icons.arrow_forward_ios_rounded,
-          size: 16,
-          color: Color(0xFFB71C1C),
-        ),
-        onTap: () => _navigateToDetail(context, station),
       ),
     );
   }
@@ -313,17 +319,16 @@ class _ListScreenState extends State<ListScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        //centerTitle: true,
         elevation: 0,
         backgroundColor: const Color(0xFFB71C1C),
         foregroundColor: Colors.white,
       ),
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: const [
+            colors: [
               Color(0xFFFFEBEE),
               Color(0xFFF8F8F8),
             ],
@@ -380,7 +385,7 @@ class _ListScreenState extends State<ListScreen> {
                     return const Center(
                       child: CircularProgressIndicator(
                         color: Color(0xFFB71C1C),
-                      )
+                      ),
                     );
                   }
 
