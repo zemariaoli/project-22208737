@@ -78,14 +78,18 @@ class MapScreenState extends State<MapScreen> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         elevation: 0,
-        backgroundColor: Colors.blueGrey.shade800,
+        backgroundColor: const Color(0xFFB71C1C),
         foregroundColor: Colors.white,
       ),
       body: FutureBuilder<List<Station>>(
         future: _stationsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFFB71C1C),
+              ),
+            );
           }
 
           final stations = snapshot.data ?? [];

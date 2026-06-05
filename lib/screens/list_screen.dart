@@ -112,56 +112,84 @@ class _ListScreenState extends State<ListScreen> {
         },
         decoration: InputDecoration(
           hintText: 'Pesquisar estação...',
-          prefixIcon: const Icon(Icons.search),
+          hintStyle: TextStyle(
+            color: Colors.grey.shade600,
+          ),
+          prefixIcon: const Icon(
+            Icons.search,
+            color: Color(0xFFB71C1C),
+          ),
           filled: true,
           fillColor: Colors.white,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(
-              color: Theme.of(context).primaryColor,
-              width: 1.5,
+              color: Color(0xFFE0E0E0),
             ),
           ),
-          contentPadding: const EdgeInsets.symmetric(vertical: 0),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: Color(0xFFB71C1C),
+              width: 2,
+            ),
+          ),
         ),
       ),
     );
   }
 
   Widget _buildStationTile(BuildContext context, Station station) {
-    return Card(
-      elevation: 2,
+    return Container(
       margin: const EdgeInsets.symmetric(
         horizontal: 12,
         vertical: 6,
       ),
-      shape: RoundedRectangleBorder(
+      decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: const Border(
+          left: BorderSide(
+            color: Color(0xFFB71C1C),
+            width: 4,
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
-          vertical: 4,
+          vertical: 6,
         ),
         leading: _buildLineAvatar(station),
         title: Text(
           station.name,
           style: const TextStyle(
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
+            fontSize: 15,
           ),
         ),
         subtitle: Text(
           formatLineName(station.lineName),
+          style: TextStyle(
+            color: Colors.grey.shade600,
+          ),
         ),
-        trailing: const Icon(Icons.chevron_right),
+        trailing: const Icon(
+          Icons.arrow_forward_ios_rounded,
+          size: 16,
+          color: Color(0xFFB71C1C),
+        ),
         onTap: () => _navigateToDetail(context, station),
       ),
     );
@@ -247,7 +275,7 @@ class _ListScreenState extends State<ListScreen> {
     return ListView.separated(
       key: const Key('list-view'),
       itemCount: filteredStations.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
+      separatorBuilder: (_, __) => const SizedBox(height: 2),
       itemBuilder: (context, index) {
         return _buildStationTile(context, filteredStations[index]);
       },
@@ -285,32 +313,74 @@ class _ListScreenState extends State<ListScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        centerTitle: true,
+        //centerTitle: true,
         elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.black87,
+        backgroundColor: const Color(0xFFB71C1C),
+        foregroundColor: Colors.white,
       ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Colors.blue.shade50,
-              Colors.white,
+            colors: const [
+              Color(0xFFFFEBEE),
+              Color(0xFFF8F8F8),
             ],
           ),
         ),
         child: Column(
           children: [
             _buildSearchBar(),
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 8,
+              ),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color(0xFF8E0000),
+                      Color(0xFFC62828),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Rede Metropolitana',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Estações do Metro de Lisboa',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             Expanded(
               child: FutureBuilder<List<Station>>(
                 future: _stationsFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(
-                      child: CircularProgressIndicator(),
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFB71C1C),
+                      )
                     );
                   }
 

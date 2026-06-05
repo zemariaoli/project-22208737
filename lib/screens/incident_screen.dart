@@ -84,7 +84,7 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
         style: const TextStyle(
           fontWeight: FontWeight.w600,
           fontSize: 13,
-          color: Color(0xFF003DA5),
+          color: Color(0xFFB71C1C),
         ),
       ),
     );
@@ -103,7 +103,7 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFF003DA5), width: 2),
+        borderSide: const BorderSide(color: Color(0xFFB71C1C), width: 2),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       filled: true,
@@ -117,14 +117,14 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
 
     return Scaffold(
       key: const Key('incidents-report-screen'),
-      backgroundColor: const Color(0xFFF4F6F9),
+      backgroundColor: const Color(0xFFFFFFFF),
       appBar: AppBar(
         title: const Text(
           'Reportar Incidente',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         elevation: 0,
-        backgroundColor: const Color(0xFF003DA5),
+        backgroundColor: const Color(0xFFB71C1C),
         foregroundColor: Colors.white,
       ),
       body: SafeArea(
@@ -139,7 +139,7 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
                   return const Center(
                     child: Padding(
                       padding: EdgeInsets.all(32),
-                      child: CircularProgressIndicator(color: Color(0xFF003DA5)),
+                      child: CircularProgressIndicator(color: Color(0xFFB71C1C)),
                     ),
                   );
                 }
@@ -160,14 +160,17 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [Color(0xFF003DA5), Color(0xFF0056D6)],
+                          colors: [
+                            Color(0xFF8E0000),
+                            Color(0xFFC62828),
+                          ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF003DA5).withOpacity(0.3),
+                            color: const Color(0xFFB71C1C).withOpacity(0.25),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
@@ -175,14 +178,18 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.warning_amber_rounded, color: Colors.white, size: 32),
+                          Icon(
+                            Icons.report_problem_outlined,
+                            color: Colors.white,
+                            size: 32,
+                          ),
                           SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Novo Incidente',
+                                  'Reporte um Incidente',
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 18,
@@ -190,7 +197,7 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
                                   ),
                                 ),
                                 Text(
-                                  'Preencha os campos para reportar',
+                                  'Ajude a melhorar a experiência dos passageiros',
                                   style: TextStyle(color: Colors.white70, fontSize: 12),
                                 ),
                               ],
@@ -207,6 +214,12 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: Colors.white,
+                        border: const Border(
+                          left: BorderSide(
+                            color: Color(0xFFB71C1C),
+                            width: 4,
+                          ),
+                        ),
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
@@ -412,7 +425,7 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
                         icon: const Icon(Icons.send),
                         label: const Text('Submeter', style: TextStyle(fontSize: 16)),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF003DA5),
+                          backgroundColor: const Color(0xFF3E7529),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(

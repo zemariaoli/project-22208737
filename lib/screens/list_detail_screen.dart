@@ -62,13 +62,27 @@ class _StationDetailPageState extends State<StationDetailPage> {
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-        ),
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 18,
+            decoration: BoxDecoration(
+              color: const Color(0xFFB71C1C),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFB71C1C),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -375,11 +389,11 @@ class _StationDetailPageState extends State<StationDetailPage> {
 
     return Scaffold(
       key: const Key('detail-screen'),
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: const Color(0xFFF8F8F8),
       appBar: AppBar(
         title: Text(widget.stationName),
         elevation: 0,
-        backgroundColor: Colors.blueGrey.shade800,
+        backgroundColor: const Color(0xFFB71C1C),
         foregroundColor: Colors.white,
       ),
       body: FutureBuilder<Station?>(
