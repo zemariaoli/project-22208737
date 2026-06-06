@@ -21,7 +21,10 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
   IncidentType? _type;
   int? _rating;
   DateTime? _dateTime;
+  String _dateTimeText = '';
   String? _notes;
+
+  final DateFormat _dateFormatter = DateFormat('dd/MM/yyyy HH:mm');
 
   @override
   void initState() {
@@ -36,17 +39,65 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
       _type = null;
       _rating = null;
       _dateTime = null;
+      _dateTimeText = '';
       _notes = null;
     });
   }
 
+  bool _hasCorrectDateFormat(String value) {
+    return RegExp(r'^\d{2}/\d{2}/\d{4} \d{2}:\d{2}$').hasMatch(value);
+  }
+
+  DateTime? _tryParseDateTime(String value) {
+    try {
+      return _dateFormatter.parseStrict(value);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String? _validateDateTime(String? value) {
+    final text = _dateTimeText.trim();
+
+    if (text.isEmpty) {
+      return 'Preencha a data e hora';
+    }
+
+    if (!_hasCorrectDateFormat(text)) {
+      return 'Formato errado. Use dd/MM/yyyy HH:mm';
+    }
+
+    final parsedDate = _tryParseDateTime(text);
+
+    if (parsedDate == null) {
+      return 'Formato errado. Use dd/MM/yyyy HH:mm';
+    }
+
+    final now = DateTime.now();
+
+    if (parsedDate.isAfter(now)) {
+      return 'A data não pode ser no futuro';
+    }
+
+    final threeYearsAgo = DateTime(
+      now.year - 3,
+      now.month,
+      now.day,
+      now.hour,
+      now.minute,
+    );
+
+    if (parsedDate.isBefore(threeYearsAgo)) {
+      return 'A data não pode ser há mais de 3 anos';
+    }
+
+    return null;
+  }
 
   Future<void> _submitForm(MetroRepository repository) async {
-    // LOG 1: Verificar se o botão está a funcionar
     debugPrint('--- [DEBUG] Botão Submeter pressionado ---');
 
     if (!_formKey.currentState!.validate()) {
-      // LOG 2: O formulário falhou na validação visual
       debugPrint('--- [DEBUG] Erro: O formulário NÃO é válido! ---');
       return;
     }
@@ -66,10 +117,10 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
       await repository.attachIncident(_station!.id, report);
       debugPrint('--- [DEBUG] Sucesso no repositório! ---');
     } catch (erro) {
-      // LOG 3: Se a tua API ou Base de Dados der erro, vai cair aqui
       debugPrint('--- [DEBUG] ERRO GRAVE NO REPOSITÓRIO: $erro ---');
 
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Erro ao submeter: $erro'),
@@ -79,7 +130,6 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
       return;
     }
 
-    // LOG 4: Verificar se o ecrã não foi fechado durante o 'await'
     if (!mounted) {
       debugPrint('--- [DEBUG] Erro: O widget já não está "mounted" na árvore! ---');
       return;
@@ -87,7 +137,6 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
 
     debugPrint('--- [DEBUG] A disparar a SnackBar de sucesso... ---');
 
-    // Limpa qualquer SnackBar pendente antes de mostrar a nova
     ScaffoldMessenger.of(context).clearSnackBars();
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -168,7 +217,9 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
                   return const Center(
                     child: Padding(
                       padding: EdgeInsets.all(32),
-                      child: CircularProgressIndicator(color: Color(0xFFB71C1C)),
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFB71C1C),
+                      ),
                     ),
                   );
                 }
@@ -182,8 +233,6 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
-                    // HEADER
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
@@ -227,7 +276,10 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
                                 ),
                                 Text(
                                   'Ajude a melhorar a experiência dos passageiros',
-                                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                  ),
                                 ),
                               ],
                             ),
@@ -238,7 +290,6 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
 
                     const SizedBox(height: 20),
 
-                    // FORMULÁRIO
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -261,8 +312,6 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-
-                          // ESTAÇÃO
                           _buildLabel('Estação'),
                           TestableFormField<Station>(
                             key: const Key('incident-station-selection-field'),
@@ -271,24 +320,34 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
                               state.didChange(value);
                               _station = value;
                             },
-                            validator: (v) => v == null ? 'Preencha a estação' : null,
+                            validator: (v) =>
+                            v == null ? 'Preencha a estação' : null,
                             onSaved: (v) => _station = v,
                             builder: (field) {
-                              final selectedValue = stations.any((s) => s == field.value)
+                              final selectedValue =
+                              stations.any((s) => s == field.value)
                                   ? field.value
                                   : null;
+
                               return InputDecorator(
-                                decoration: _fieldDecoration(errorText: field.errorText),
+                                decoration:
+                                _fieldDecoration(errorText: field.errorText),
                                 child: DropdownButton<Station>(
                                   value: selectedValue,
-                                  hint: const Text('Selecione uma estação',
-                                      style: TextStyle(color: Color(0xFF9AA5B4))),
+                                  hint: const Text(
+                                    'Selecione uma estação',
+                                    style: TextStyle(color: Color(0xFF9AA5B4)),
+                                  ),
                                   isExpanded: true,
                                   underline: const SizedBox(),
-                                  items: stations.map((s) => DropdownMenuItem<Station>(
-                                    value: s,
-                                    child: Text(s.name),
-                                  )).toList(),
+                                  items: stations
+                                      .map(
+                                        (s) => DropdownMenuItem<Station>(
+                                      value: s,
+                                      child: Text(s.name),
+                                    ),
+                                  )
+                                      .toList(),
                                   onChanged: (value) {
                                     field.didChange(value);
                                     _station = value;
@@ -300,7 +359,6 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
 
                           const SizedBox(height: 16),
 
-                          // TIPO
                           _buildLabel('Tipo de incidente'),
                           TestableFormField<IncidentType>(
                             key: const Key('incident-type-selection-field'),
@@ -309,20 +367,29 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
                               state.didChange(value);
                               _type = value;
                             },
-                            validator: (v) => v == null ? 'Preencha o tipo de incidente' : null,
+                            validator: (v) => v == null
+                                ? 'Preencha o tipo de incidente'
+                                : null,
                             onSaved: (v) => _type = v,
                             builder: (field) => InputDecorator(
-                              decoration: _fieldDecoration(errorText: field.errorText),
+                              decoration:
+                              _fieldDecoration(errorText: field.errorText),
                               child: DropdownButton<IncidentType>(
                                 value: field.value,
-                                hint: const Text('Selecione o tipo',
-                                    style: TextStyle(color: Color(0xFF9AA5B4))),
+                                hint: const Text(
+                                  'Selecione o tipo',
+                                  style: TextStyle(color: Color(0xFF9AA5B4)),
+                                ),
                                 isExpanded: true,
                                 underline: const SizedBox(),
-                                items: IncidentType.values.map((t) => DropdownMenuItem<IncidentType>(
-                                  value: t,
-                                  child: Text(t.displayName),
-                                )).toList(),
+                                items: IncidentType.values
+                                    .map(
+                                      (t) => DropdownMenuItem<IncidentType>(
+                                    value: t,
+                                    child: Text(t.displayName),
+                                  ),
+                                )
+                                    .toList(),
                                 onChanged: (value) {
                                   field.didChange(value);
                                   _type = value;
@@ -333,7 +400,6 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
 
                           const SizedBox(height: 16),
 
-                          // AVALIAÇÃO
                           _buildLabel('Avaliação (1-5)'),
                           TestableFormField<int>(
                             key: const Key('incident-rating-field'),
@@ -347,12 +413,14 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
                                 : null,
                             onSaved: (v) => _rating = v,
                             builder: (field) => InputDecorator(
-                              decoration: _fieldDecoration(errorText: field.errorText),
+                              decoration:
+                              _fieldDecoration(errorText: field.errorText),
                               child: TextField(
                                 decoration: const InputDecoration(
                                   border: InputBorder.none,
                                   hintText: 'Ex: 3',
-                                  hintStyle: TextStyle(color: Color(0xFF9AA5B4)),
+                                  hintStyle:
+                                  TextStyle(color: Color(0xFF9AA5B4)),
                                   isDense: true,
                                   contentPadding: EdgeInsets.zero,
                                 ),
@@ -368,7 +436,6 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
 
                           const SizedBox(height: 16),
 
-                          // DATA E HORA
                           _buildLabel('Data e hora'),
                           TestableFormField<DateTime>(
                             key: const Key('incident-datetime-field'),
@@ -376,35 +443,43 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
                             internalSetValue: (state, value) {
                               state.didChange(value);
                               _dateTime = value;
+                              _dateTimeText = value == null
+                                  ? ''
+                                  : _dateFormatter.format(value);
                             },
-                            validator: (value) {
-                              if (value == null) return 'Preencha a data e hora';
-                              final now = DateTime.now();
-                              if (value.isAfter(now)) return 'A data não pode ser no futuro';
-                              final threeYearsAgo = DateTime(now.year - 3, now.month, now.day);
-                              if (value.isBefore(threeYearsAgo)) return 'A data não pode ser há mais de 3 anos';
-                              return null;
+                            validator: (_) => _validateDateTime(_dateTimeText),
+                            onSaved: (_) {
+                              _dateTime = _tryParseDateTime(
+                                _dateTimeText.trim(),
+                              );
                             },
-                            onSaved: (v) => _dateTime = v,
                             builder: (field) => InputDecorator(
-                              decoration: _fieldDecoration(errorText: field.errorText),
+                              decoration:
+                              _fieldDecoration(errorText: field.errorText),
                               child: TextFormField(
                                 decoration: const InputDecoration(
                                   border: InputBorder.none,
                                   hintText: 'dd/MM/yyyy HH:mm',
-                                  hintStyle: TextStyle(color: Color(0xFF9AA5B4)),
+                                  hintStyle:
+                                  TextStyle(color: Color(0xFF9AA5B4)),
                                   isDense: true,
                                   contentPadding: EdgeInsets.zero,
                                 ),
                                 onChanged: (value) {
-                                  try {
-                                    final parsed = DateFormat('dd/MM/yyyy HH:mm').parseStrict(value.trim());
-                                    field.didChange(parsed);
-                                    _dateTime = parsed;
-                                  } catch (_) {
+                                  _dateTimeText = value;
+
+                                  final text = value.trim();
+
+                                  if (!_hasCorrectDateFormat(text)) {
                                     field.didChange(null);
                                     _dateTime = null;
+                                    return;
                                   }
+
+                                  final parsed = _tryParseDateTime(text);
+
+                                  field.didChange(parsed);
+                                  _dateTime = parsed;
                                 },
                               ),
                             ),
@@ -412,7 +487,6 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
 
                           const SizedBox(height: 16),
 
-                          // NOTAS
                           _buildLabel('Notas (opcional)'),
                           TestableFormField<String>(
                             key: const Key('incident-notes-field'),
@@ -423,12 +497,14 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
                             },
                             onSaved: (v) => _notes = v,
                             builder: (field) => InputDecorator(
-                              decoration: _fieldDecoration(errorText: field.errorText),
+                              decoration:
+                              _fieldDecoration(errorText: field.errorText),
                               child: TextFormField(
                                 decoration: const InputDecoration(
                                   border: InputBorder.none,
                                   hintText: 'Descrição do incidente...',
-                                  hintStyle: TextStyle(color: Color(0xFF9AA5B4)),
+                                  hintStyle:
+                                  TextStyle(color: Color(0xFF9AA5B4)),
                                   isDense: true,
                                   contentPadding: EdgeInsets.zero,
                                 ),
@@ -452,7 +528,10 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
                         key: const Key('incident-form-submit-button'),
                         onPressed: () async => await _submitForm(repository),
                         icon: const Icon(Icons.send),
-                        label: const Text('Submeter', style: TextStyle(fontSize: 16)),
+                        label: const Text(
+                          'Submeter',
+                          style: TextStyle(fontSize: 16),
+                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF3E7529),
                           foregroundColor: Colors.white,
@@ -463,6 +542,7 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
                         ),
                       ),
                     ),
+
                     const SizedBox(height: 16),
                   ],
                 );
