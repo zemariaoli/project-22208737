@@ -443,9 +443,7 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
                             internalSetValue: (state, value) {
                               state.didChange(value);
                               _dateTime = value;
-                              _dateTimeText = value == null
-                                  ? ''
-                                  : _dateFormatter.format(value);
+                              _dateTimeText = _dateFormatter.format(value);
                             },
                             validator: (_) => _validateDateTime(_dateTimeText),
                             onSaved: (_) {
