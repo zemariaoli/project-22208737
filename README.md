@@ -14,8 +14,7 @@
 
 | Dashboard | 
 |-----------|
-| <img width="362" height="773" alt="image" src="https://github.com/user-attachments/assets/91219376-e451-4b4b-accd-00e6435dec83" /> |
-
+| <img width="348" height="753" alt="image" src="https://github.com/user-attachments/assets/a19e92af-d0ac-4f1e-8018-9c4ba5efc595" /> |
 
 | Lista de Estações |
 |-------------------|
