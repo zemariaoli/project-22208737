@@ -1,81 +1,189 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/iNsiMShf)
-## Execução dos testes
+# Trabalho Prático – Computação Móvel
+## Aplicação Metro de Lisboa
 
-Embora não sendo uma boa prática no desenho de testes, a nível académico faz sentido que alguns testes tenham precedências. Exemplo:
-Não faz sentido testar se a submissão do formulário funciona quando o teste que verifica a navegação para esse ecrã falha. Nesse sendido, caso executem os testes através do método `main` (onde todos os testes são executados) esta precedência é verificada dando algumas dicas sobre que teste deverão resolver primeiro.
+### Alunos
 
-Se, quiserem executar algum teste sem esta funcionalidade, basta seguirem estes passos:
+| Nome | Número |
+|--------|--------|
+| Tomás Figueiredo | 22211218 |
+| José Oliveira | 22208737 |
 
-![](docs/config.png)
+---
 
-![](docs/args.png)
+# Capturas de Ecrã da Aplicação
 
-## AUTHORS.txt
+| Dashboard | 
+|-----------|
+| <img width="362" height="773" alt="image" src="https://github.com/user-attachments/assets/91219376-e451-4b4b-accd-00e6435dec83" /> |
 
-Devem criar um ficheiro na raíz do projeto (ao nível do README.txt) com o nome AUTHORS.txt. Este ficheiro terá o(s) número(s) e nome do(s) aluno(s) separado por ponto e vírgula (;).
-Nota: Sem este ficheiro os testes não serão avaliados.
 
-```
-a21234567;John Doe
-a27654321;Richard Roe
-```
+| Lista de Estações |
+|-------------------|
+| <img width="362" height="772" alt="image" src="https://github.com/user-attachments/assets/aff61686-a604-4629-aff3-4dde37499573" /> |
 
-## Pressupostos para os testes
+| Detalhe da Estação |
+|------------|
+| <img width="356" height="770" alt="image" src="https://github.com/user-attachments/assets/aa62bb01-d822-4ac9-9e85-7dd59214c44e" /> |
+ 
+| Reporte de Incidentes |
+|------------|
+| <img width="360" height="777" alt="image" src="https://github.com/user-attachments/assets/33122fac-a399-41d2-98b6-a5a22585a206" /> |
 
-Nota: Existem testes que dependem de outros para serem passarem, nestes casos, será apresentada uma mensagem com a indicação dos testes que estão a falhar. Esta dependencia pode ser removida de duas formas:
-1. Diretamente no teste, passsando o argumento `skipCheckDependsOn` com o valor `true` na funcão `checkDependsOn`
-2. Na implementação da função `checkDependsOn`, o valor por omissão do argumento `skipCheckDependsOn` para `true`
+| Mapa de Estações |
+|------------|
+| <img width="360" height="770" alt="image" src="https://github.com/user-attachments/assets/6b22046a-5115-44f4-a0ec-c0149606689a" /> |
 
-* Existe a classe `Station` com os atributos
-```
-String id;
-String name;
-double latitude, longitude;
-String lineName;
-List<IncidentReport> reports;
-```
-* Existe a classe `IncidentReport` com os atributos
-```
-DateTime timestamp;
-int rate;
-String? notes;
-IncidentType type;
-```
-* Ainda dentro da classe `IncidentReport` existe um enumerado `IncidentType` com os seguintes tipos
-```
-ESCALATOR
-ELEVATOR
-TICKET_MACHINE
-TURNSTILE
-OTHER
-```
-* Existe a classe `MetroRepository` com a API .... Construtor vazio, não inicializa logo com estação alguma
-* O `main()` deve pré-inicializar o `MetroRepository` com 3 estações (podem inventar os id's e dados, pois os testes vão inicializar de outra forma)
-* O Provider injeta instância de `MetroRepository`
-* Os items da `NavigationBar` têm as seguintes keys:
-    * `dashboard-bottom-bar-item`
-    * `list-bottom-bar-item`
-    * `map-bottom-bar-item`
-    * `incidents-report-bottom-bar-item`
-* A `ListView` onde são apresentadas as estações tem a key `list-view`
-* Todos os ecrãs têm um Widget do tipo `Scaffold` com uma key relacionada com o ecrã em questão:
-    * `dashboard-screen`
-    * `list-screen`
-    * `map-screen`
-    * `incidents-report-screen`
-* Os campos do formulário para inserir os incidentes têm que ser do tipo `TestableFormField` com as seguintes keys:
-    * `incident-station-selection-field`
-    * `incident-type-selection-field`
-    * `incident-rating-field`
-    * `incident-datetime-field`
-    * `incident-notes-field`
-    * E um Button `incident-form-submit-button`
-* Todos os campos do formulário são de preenchimento obrigatório, excepto o campo `incident-notes-field`
-* Caso não preenchido, ao submeter o formulário, deverá ser apresentadas indicações de erro para cada campo
-* O campo `incident-rating-field` deve aceitar apenas números inteiros entre 1 e 5, caso contrário, deve apresentar uma indicação de erro
-    * 'Preencha a estação'
-    * 'Preecha o tipo de incidente'
-    * 'Preencha a avaliação'
-    * 'Preencha a data e hora'
-* Sempre que a cor da linha (Vermelha, Azul, etc) for mencionada, deve ser seguida da palavra "Linha".
-* Os argumentos dos contrutores devem ser todos named ou seja, não posicionais.
+---
+
+# Funcionalidades Implementadas
+
+A implementação foi desenvolvida tendo por base os requisitos das duas fases do projeto e respetiva grelha de avaliação.
+
+### Integração com API Externa
+- Consumo da API disponibilizada no enunciado.
+- Obtenção dinâmica das estações e respetiva informação operacional.
+
+### Funcionamento Offline
+- Persistência local dos dados obtidos através da API.
+- Em ausência de ligação à Internet, a aplicação apresenta os últimos dados sincronizados e guardados localmente.
+
+### Mapa de Estações
+- Integração com Google Maps.
+- Apresentação das estações através de marcadores geográficos.
+- Navegação para o detalhe da estação através da seleção de um marcador.
+
+### Localização do Utilizador
+- Obtenção da localização atual do dispositivo.
+- Utilização da geolocalização em diferentes áreas da aplicação.
+
+### Distância até à Estação
+- Cálculo da distância entre o utilizador e a estação selecionada.
+- Apresentação da distância em metros no ecrã de detalhe.
+
+### Tempos de Espera
+- Consulta dos tempos de espera disponíveis na API.
+- Organização dos tempos por cais.
+- Ordenação dos tempos por proximidade da chegada.
+
+### Reporte de Incidentes
+- Formulário de registo de incidentes.
+- Validação dos campos obrigatórios.
+- Associação do incidente à estação selecionada.
+- Atualização imediata dos dados da estação.
+
+### Estatísticas de Incidentes
+- Apresentação dos incidentes associados a cada estação.
+- Cálculo e apresentação da média das avaliações dos incidentes registados.
+
+### Interface e Experiência de Utilização
+- Interface desenvolvida segundo os princípios Material Design.
+- Adaptação a diferentes dimensões de ecrã.
+- Utilização de componentes visuais consistentes em toda a aplicação.
+
+---
+
+# Arquitetura da Aplicação
+
+A aplicação foi desenvolvida segundo uma arquitetura em camadas, promovendo a separação de responsabilidades, a reutilização de código e a facilidade de manutenção.
+
+## Camada de Modelos (Models)
+
+Contém as entidades de domínio da aplicação:
+
+- Station
+- IncidentReport
+- WaitingTime
+
+Estas classes representam exclusivamente os dados utilizados pela aplicação.
+
+## Camada de Dados (Data)
+
+Responsável pelo acesso e gestão de dados.
+
+### MetroRepository
+
+O repositório centraliza toda a lógica de acesso aos dados e abstrai a origem dos mesmos.
+
+Os ecrãs da aplicação não necessitam de saber se a informação provém:
+- da API;
+- da base de dados local;
+- ou de outra fonte.
+
+### Data Sources
+
+Foram utilizadas diferentes fontes de dados:
+
+- Fonte remota para comunicação com a API;
+- Fonte local para persistência de informação offline.
+
+Esta abordagem facilita futuras alterações sem impacto na interface gráfica.
+
+## Camada de Apresentação (Screens)
+
+Cada funcionalidade principal encontra-se isolada no seu próprio ecrã:
+
+- DashboardScreen
+- ListScreen
+- StationDetailScreen
+- MapScreen
+- IncidentScreen
+
+Esta divisão torna o projeto mais organizado e facilita a evolução da aplicação.
+
+## Gestão de Estado
+
+Foi utilizado o package Provider para:
+
+- Disponibilizar dependências globais;
+- Partilhar dados entre ecrãs;
+- Atualizar automaticamente a interface quando existem alterações aos dados.
+
+---
+
+# Boas Práticas Utilizadas
+
+### Separação de Responsabilidades
+A lógica de negócio encontra-se separada da interface gráfica.
+
+### Reutilização de Componentes
+Criação de widgets e métodos auxiliares para evitar duplicação de código.
+
+### Programação Assíncrona
+Utilização de FutureBuilder para operações dependentes de:
+- rede;
+- localização;
+- carregamento de dados.
+
+### Tratamento de Erros
+Implementação de mensagens adequadas para:
+- falhas de comunicação;
+- ausência de Internet;
+- erros de validação.
+
+### Persistência de Dados
+Armazenamento local dos dados necessários para funcionamento offline.
+
+### Manutenção e Escalabilidade
+Estrutura modular preparada para inclusão de novas funcionalidades sem alterações significativas à arquitetura existente.
+
+---
+
+# Autoavaliação
+
+Tendo em consideração os requisitos implementados, a qualidade da interface, a arquitetura adotada e os resultados obtidos nos testes automáticos:
+
+| Componente | Nota Prevista |
+|------------|------------|
+| Parte 2 | 17.5 / 20 |
+
+Consideramos que a aplicação cumpre integralmente os requisitos obrigatórios e apresenta uma implementação organizada, robusta e alinhada com as boas práticas de desenvolvimento em Flutter.
+
+---
+
+# Vídeo de Apresentação
+
+O vídeo demonstrativo da aplicação encontra-se disponível no seguinte endereço:
+
+**YouTube (Não Listado):**
+
+👉 INSERIR_LINK_YOUTUBE
