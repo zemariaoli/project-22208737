@@ -15,19 +15,27 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  // ─── Future para carregar as estações da API / base de dados ──────────────
   Future<List<Station>>? _stationsFuture;
 
-  // ─── Ciclo de vida ────────────────────────────────────────────────────────
+  static const List<String> _metroLineOrder = [
+    'Azul',
+    'Amarela',
+    'Verde',
+    'Vermelha',
+  ];
+
+  static const Map<String, Color> _metroLineColors = {
+    'Azul': Colors.blue,
+    'Amarela': Colors.amber,
+    'Verde': Colors.green,
+    'Vermelha': Colors.red,
+  };
 
   @override
   void initState() {
     super.initState();
-    // Carrega as estações uma única vez ao inicializar o ecrã
     _stationsFuture = context.read<MetroRepository>().getStations();
   }
-
-  // ─── Build principal ──────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -48,20 +56,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       body: FutureBuilder<List<Station>>(
         future: _stationsFuture,
         builder: (context, snapshot) {
-          // A carregar
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // Erro de rede ou API
           if (snapshot.hasError) return _buildError();
 
-          // Usa a cache do repositório se disponível, senão usa o snapshot
           final stations = repository.cachedStations.isNotEmpty
               ? repository.cachedStations
               : snapshot.data ?? [];
-
-          // ── Cálculo das estatísticas ──────────────────────────────────────
 
           final totalStations = stations.length;
 
@@ -72,12 +75,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ? stations.fold(0.0, (acc, s) {
             return acc +
                 s.reports.fold(0.0, (sum, r) => sum + r.rate);
-          }) / totalIncidents
+          }) /
+              totalIncidents
               : 0.0;
 
-          // Estação com mais incidentes registados
           int maxIncidents = -1;
           String stationWithMostIncidents = 'Nenhuma';
+
           for (final s in stations) {
             if (s.reports.length > maxIncidents) {
               maxIncidents = s.reports.length;
@@ -85,22 +89,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
             }
           }
 
-          // Número de linhas únicas
-          final lineCount = stations.map((s) => s.lineName).toSet().length;
-
-          // ── Layout do dashboard ───────────────────────────────────────────
+          // Agora conta só as linhas reais:
+          // Azul, Amarela, Verde e Vermelha.
+          final lineCount = _getLineCounts(stations).length;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
-                // Banner de boas-vindas
                 _buildHeader(),
                 const SizedBox(height: 20),
 
-                // Indicadores numéricos (estações, linhas, incidentes, média)
                 _buildStatsRow(
                   totalStations: totalStations,
                   totalIncidents: totalIncidents,
@@ -109,31 +109,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Estação com mais incidentes
                 _buildSectionTitle('Alertas da Rede'),
                 const SizedBox(height: 8),
                 _buildCriticalStationCard(stationWithMostIncidents),
                 const SizedBox(height: 20),
 
-                // Lista de linhas com número de estações
                 _buildSectionTitle('Linhas'),
                 const SizedBox(height: 8),
                 _buildLinesCard(stations),
                 const SizedBox(height: 20),
 
-                // Imagem do mapa oficial da rede
                 _buildSectionTitle('Mapa da Rede'),
                 const SizedBox(height: 8),
                 _buildMetroMapCard(),
                 const SizedBox(height: 20),
 
-                // Curiosidade sobre o Metro de Lisboa
                 _buildSectionTitle('Sabia que...'),
                 const SizedBox(height: 8),
                 _buildFactCard(),
                 const SizedBox(height: 20),
 
-                // Reviews de utilizadores
                 _buildSectionTitle('O que dizem os utilizadores'),
                 const SizedBox(height: 8),
                 _buildReviewsCard(),
@@ -146,9 +141,71 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // ─── Funções para tratar linhas ───────────────────────────────────────────
+
+  String? _normaliseLineName(String value) {
+    final normalized = value
+        .replaceAll('[', '')
+        .replaceAll(']', '')
+        .replaceAll(RegExp(r'\bLinha\b', caseSensitive: false), '')
+        .trim()
+        .toLowerCase();
+
+    switch (normalized) {
+      case 'azul':
+        return 'Azul';
+      case 'amarela':
+      case 'amarelo':
+        return 'Amarela';
+      case 'verde':
+        return 'Verde';
+      case 'vermelha':
+      case 'vermelho':
+        return 'Vermelha';
+      default:
+        return null;
+    }
+  }
+
+  List<String> _extractLineNames(String rawLineName) {
+    final cleaned = rawLineName
+        .replaceAll('[', '')
+        .replaceAll(']', '')
+        .replaceAll(RegExp(r'\bLinha\b', caseSensitive: false), '')
+        .trim();
+
+    return cleaned
+        .split(RegExp(r'\s*,\s*|\s+e\s+'))
+        .map(_normaliseLineName)
+        .whereType<String>()
+        .toSet()
+        .toList();
+  }
+
+  Map<String, int> _getLineCounts(List<Station> stations) {
+    final counts = <String, int>{
+      for (final line in _metroLineOrder) line: 0,
+    };
+
+    for (final station in stations) {
+      final stationLines = _extractLineNames(station.lineName);
+
+      for (final line in stationLines) {
+        counts[line] = (counts[line] ?? 0) + 1;
+      }
+    }
+
+    counts.removeWhere((line, count) => count == 0);
+
+    return counts;
+  }
+
+  String _formatStationCount(int count) {
+    return '$count ${count == 1 ? 'estação' : 'estações'}';
+  }
+
   // ─── Widgets auxiliares ───────────────────────────────────────────────────
 
-  /// Título de secção com estilo vermelho.
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
@@ -160,7 +217,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  /// Banner de boas-vindas com gradiente vermelho.
   Widget _buildHeader() {
     return Container(
       width: double.infinity,
@@ -205,7 +261,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  /// Linha de 4 cards com os indicadores principais.
   Widget _buildStatsRow({
     required int totalStations,
     required int totalIncidents,
@@ -257,7 +312,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  /// Card individual de um indicador estatístico.
   Widget _buildStatCard({
     required String key,
     required IconData icon,
@@ -301,7 +355,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  /// Card de alerta com a estação que tem mais incidentes registados.
   Widget _buildCriticalStationCard(String stationName) {
     return Container(
       width: double.infinity,
@@ -346,23 +399,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  /// Card com a lista de linhas e o número de estações em cada uma.
   Widget _buildLinesCard(List<Station> stations) {
-    // Conta o número de estações por linha
-    final lines = <String, int>{};
-    for (final s in stations) {
-      lines[s.lineName] = (lines[s.lineName] ?? 0) + 1;
-    }
-
-    // Mapeamento de nome de linha para cor
-    final lineColors = {
-      'Azul': Colors.blue,
-      'Amarela': Colors.amber,
-      'Verde': Colors.green,
-      'Vermelha': Colors.red,
-      'Rosa': Colors.pink,
-      'Castanha': Colors.brown,
-    };
+    final lines = _getLineCounts(stations);
 
     return Container(
       decoration: BoxDecoration(
@@ -377,30 +415,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
       child: Column(
-        children: lines.entries.map((entry) {
-          // Encontra a cor correspondente à linha (ou cinzento por defeito)
-          final color = lineColors.entries
-              .firstWhere(
-                (e) => entry.key.toLowerCase().contains(e.key.toLowerCase()),
-            orElse: () => const MapEntry('', Colors.blueGrey),
-          )
-              .value;
+        children: _metroLineOrder.where((line) => lines.containsKey(line)).map(
+              (line) {
+            final count = lines[line] ?? 0;
+            final color = _metroLineColors[line] ?? Colors.blueGrey;
 
-          return ListTile(
-            leading: CircleAvatar(backgroundColor: color, radius: 12),
-            title: Text('Linha ${entry.key}'),
-            trailing: Text(
-              '${entry.value} estações',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-            ),
-          );
-        }).toList(),
+            return ListTile(
+              leading: CircleAvatar(
+                backgroundColor: color,
+                radius: 12,
+              ),
+              title: Text('Linha $line'),
+              trailing: Text(
+                _formatStationCount(count),
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 13,
+                ),
+              ),
+            );
+          },
+        ).toList(),
       ),
     );
   }
 
-  /// Card com o mapa oficial da rede do Metro de Lisboa.
-  /// Suporta zoom por pinch (InteractiveViewer).
   Widget _buildMetroMapCard() {
     return Container(
       width: double.infinity,
@@ -418,7 +457,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Cabeçalho do card do mapa
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
@@ -453,7 +491,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ],
             ),
           ),
-          // Imagem do mapa com suporte a zoom
           ClipRRect(
             borderRadius: const BorderRadius.only(
               bottomLeft: Radius.circular(12),
@@ -474,7 +511,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  /// Card com um facto curioso sobre o Metro de Lisboa.
   Widget _buildFactCard() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -498,18 +534,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  /// Card com reviews de utilizadores sobre a rede.
   Widget _buildReviewsCard() {
-    // Lista de reviews — pode ser expandida com mais entradas
     final reviews = [
       (icon: '🗣️', text: '"Linha Azul sempre pontual e muito organizada!"'),
       (
       icon: '🗣️',
-      text: '"Estação do Oriente muito bem sinalizada e acessível!"'
+      text: '"Estação do Oriente muito bem sinalizada e acessível!"',
       ),
       (
       icon: '🗣️',
-      text: '"Aplicação muito útil para reportar problemas rapidamente."'
+      text: '"Aplicação muito útil para reportar problemas rapidamente."',
       ),
     ];
 
@@ -526,25 +560,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
       child: Column(
-        children: reviews
-            .map(
-              (r) => ListTile(
-            leading: Text(r.icon, style: const TextStyle(fontSize: 20)),
-            title: Text(
-              r.text,
-              style: const TextStyle(
-                fontStyle: FontStyle.italic,
-                fontSize: 13,
+        children: reviews.map(
+              (r) {
+            return ListTile(
+              leading: Text(
+                r.icon,
+                style: const TextStyle(fontSize: 20),
               ),
-            ),
-          ),
-        )
-            .toList(),
+              title: Text(
+                r.text,
+                style: const TextStyle(
+                  fontStyle: FontStyle.italic,
+                  fontSize: 13,
+                ),
+              ),
+            );
+          },
+        ).toList(),
       ),
     );
   }
 
-  /// Ecrã de erro quando não é possível carregar os dados.
   Widget _buildError() {
     return const Center(
       child: Column(
