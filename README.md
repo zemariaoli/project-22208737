@@ -45,6 +45,7 @@ A implementação foi desenvolvida tendo por base os requisitos das duas fases d
 ### Funcionamento Offline
 - Persistência local dos dados obtidos através da API.
 - Em ausência de ligação à Internet, a aplicação apresenta os últimos dados sincronizados e guardados localmente.
+- Incidentes podem ser submetidos.
 
 ### Mapa de Estações
 - Integração com Google Maps.
@@ -185,4 +186,4 @@ O vídeo demonstrativo da aplicação encontra-se disponível no seguinte endere
 
 **YouTube (Não Listado):**
 
-👉 INSERIR_LINK_YOUTUBE
+👉 https://youtu.be/DNGXABIYvz0
