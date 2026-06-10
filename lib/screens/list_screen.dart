@@ -2,6 +2,7 @@ import 'package:cmproject/data/metro_repository.dart';
 import 'package:cmproject/models/station.dart';
 import 'package:cmproject/screens/list_detail_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 /// Ecrã de listagem das estações do Metro de Lisboa.
@@ -27,7 +28,6 @@ class _ListScreenState extends State<ListScreen> {
   @override
   void initState() {
     super.initState();
-    // Carrega as estações uma única vez ao inicializar o ecrã
     _stationsFuture = context.read<MetroRepository>().getStations();
   }
 
@@ -43,7 +43,6 @@ class _ListScreenState extends State<ListScreen> {
         .replaceAll("'", '')
         .trim();
 
-    // Remove a palavra "Linha" para evitar duplicação
     cleaned = cleaned.replaceAll(
       RegExp(r'\bLinha\b', caseSensitive: false),
       '',
@@ -60,7 +59,8 @@ class _ListScreenState extends State<ListScreen> {
   /// Coloca a primeira letra de cada palavra em maiúscula.
   String _capitalize(String text) {
     if (text.isEmpty) return text;
-    return text.split(' ').where((w) => w.isNotEmpty).map((word) {
+
+    return text.split(' ').where((word) => word.isNotEmpty).map((word) {
       return word[0].toUpperCase() + word.substring(1).toLowerCase();
     }).join(' ');
   }
@@ -83,7 +83,9 @@ class _ListScreenState extends State<ListScreen> {
   /// Devolve a lista de cores correspondentes às linhas da estação.
   List<Color> _lineColors(String lineName) {
     final lines = _extractLineNames(lineName);
+
     if (lines.isEmpty) return [Colors.blueGrey];
+
     return lines.map(_colorFromLineName).toList();
   }
 
@@ -109,10 +111,15 @@ class _ListScreenState extends State<ListScreen> {
 
   /// Filtra as estações com base no texto introduzido na pesquisa.
   List<Station> _filterStations(List<Station> stations) {
-    final query = searchStation.toLowerCase();
+    final query = searchStation.toLowerCase().trim();
+
+    if (query.isEmpty) return stations;
+
     return stations.where((station) {
-      return station.name.toLowerCase().contains(query) ||
-          formatLineName(station.lineName).toLowerCase().contains(query);
+      final stationName = station.name.toLowerCase();
+      final stationLine = formatLineName(station.lineName).toLowerCase();
+
+      return stationName.contains(query) || stationLine.contains(query);
     }).toList();
   }
 
@@ -141,7 +148,15 @@ class _ListScreenState extends State<ListScreen> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: TextField(
-        onChanged: (value) => setState(() => searchStation = value),
+        key: const Key('station-search-field'),
+        inputFormatters: [
+          LowerCaseTextFormatter(),
+        ],
+        onChanged: (value) {
+          setState(() {
+            searchStation = value.toLowerCase().trim();
+          });
+        },
         decoration: InputDecoration(
           hintText: 'Pesquisar estação...',
           hintStyle: TextStyle(color: Colors.grey.shade600),
@@ -200,11 +215,10 @@ class _ListScreenState extends State<ListScreen> {
     );
   }
 
-  /// Avatar circular com a cor da linha (ou metade/metade se forem duas linhas).
+  /// Avatar circular com a cor da linha ou dividido se forem várias linhas.
   Widget _buildLineAvatar(Station station) {
     final colors = _lineColors(station.lineName);
 
-    // Uma só linha — avatar simples
     if (colors.length == 1) {
       return CircleAvatar(
         radius: 24,
@@ -213,7 +227,6 @@ class _ListScreenState extends State<ListScreen> {
       );
     }
 
-    // Múltiplas linhas — avatar dividido horizontalmente
     return ClipOval(
       child: SizedBox(
         width: 48,
@@ -222,7 +235,11 @@ class _ListScreenState extends State<ListScreen> {
           children: [
             Row(
               children: colors
-                  .map((color) => Expanded(child: Container(color: color)))
+                  .map(
+                    (color) => Expanded(
+                  child: Container(color: color),
+                ),
+              )
                   .toList(),
             ),
             Center(child: _buildAvatarLetter(station)),
@@ -267,12 +284,17 @@ class _ListScreenState extends State<ListScreen> {
         clipBehavior: Clip.antiAlias,
         borderRadius: BorderRadius.circular(16),
         child: ListTile(
-          contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 6,
+          ),
           leading: _buildLineAvatar(station),
           title: Text(
             station.name,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+            ),
           ),
           subtitle: Text(
             formatLineName(station.lineName),
@@ -295,13 +317,13 @@ class _ListScreenState extends State<ListScreen> {
       key: const Key('list-view'),
       itemCount: filteredStations.length,
       separatorBuilder: (_, __) => const SizedBox(height: 2),
-      itemBuilder: (context, index) =>
-          _buildStationTile(context, filteredStations[index]),
+      itemBuilder: (context, index) {
+        return _buildStationTile(context, filteredStations[index]);
+      },
     );
   }
 
-  /// Mensagem de erro mostrada quando não há estações disponíveis
-  /// (modo offline sem dados locais ou falha de rede).
+  /// Mensagem de erro mostrada quando não há estações disponíveis.
   Widget _buildErrorMessage() {
     return const Center(
       child: Padding(
@@ -338,7 +360,6 @@ class _ListScreenState extends State<ListScreen> {
         foregroundColor: Colors.white,
       ),
       body: Container(
-        // Fundo com gradiente suave de vermelho claro para branco
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -354,7 +375,6 @@ class _ListScreenState extends State<ListScreen> {
               child: FutureBuilder<List<Station>>(
                 future: _stationsFuture,
                 builder: (context, snapshot) {
-                  // A carregar
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(
                       child: CircularProgressIndicator(
@@ -363,17 +383,18 @@ class _ListScreenState extends State<ListScreen> {
                     );
                   }
 
-                  // Erro de rede ou API
-                  if (snapshot.hasError) return _buildErrorMessage();
+                  if (snapshot.hasError) {
+                    return _buildErrorMessage();
+                  }
 
                   final stations = snapshot.data ?? [];
 
-                  // Sem estações (offline sem cache)
-                  if (stations.isEmpty) return _buildErrorMessage();
+                  if (stations.isEmpty) {
+                    return _buildErrorMessage();
+                  }
 
                   final filteredStations = _filterStations(stations);
 
-                  // Pesquisa sem resultados
                   if (filteredStations.isEmpty) {
                     return const Center(
                       child: Text('Sem estações disponíveis.'),
@@ -387,6 +408,22 @@ class _ListScreenState extends State<ListScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+
+class LowerCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue,
+      TextEditingValue newValue,
+      ) {
+    final lowerText = newValue.text.toLowerCase();
+
+    return TextEditingValue(
+      text: lowerText,
+      selection: TextSelection.collapsed(offset: lowerText.length),
     );
   }
 }
