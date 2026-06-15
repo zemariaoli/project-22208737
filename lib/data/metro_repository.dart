@@ -41,14 +41,24 @@ class MetroRepository extends ChangeNotifier {
         debugPrint('Erro ao guardar estações localmente: $e');
       }
 
-      _cachedStations = stations;
+      //_cachedStations = stations;
+
+      // Por isto:
+      _cachedStations = [];
+      for (final s in stations) {
+        try {
+          _cachedStations.add(await local.getStationDetail(s.id));
+        } catch (_) {
+          _cachedStations.add(s);
+        }
+      }
       return _cachedStations;
     }
 
     _cachedStations = await local.getStations();
     return _cachedStations;
   }
-
+//
   Future<void> _prefetchAllWaitTimes(List<Station> stations) async {
     if (generic == null) return;
 

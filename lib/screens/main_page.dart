@@ -1,3 +1,4 @@
+import 'package:cmproject/screens/mini_dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:cmproject/screens/dashboard_screen.dart';
 import 'package:cmproject/screens/list_screen.dart';
@@ -30,12 +31,14 @@ class MainScreenState extends State<MainPage> {
   Widget _buildScreen(int index) {
     switch (index) {
       case 0:
-        return const DashboardScreen();
+        return const MiniDashboard();
       case 1:
-        return const ListScreen();
+        return const DashboardScreen();
       case 2:
-        return MapScreen();
+        return const ListScreen();
       case 3:
+        return MapScreen();
+      case 4:
         return const IncidentsScreen();
       default:
         return const DashboardScreen();
@@ -63,6 +66,12 @@ class MainScreenState extends State<MainPage> {
         onDestinationSelected: onItemTapped,
 
         destinations: const [
+          // -- Mini Dashboard ------
+          NavigationDestination(
+              icon: Icon(Icons.dashboard_customize_rounded),
+              label: 'Mini Dashboard'
+          ),
+
           // ── Dashboard ────────────────────────────────────────────────────
           NavigationDestination(
             key: Key('dashboard-bottom-bar-item'),

@@ -15,6 +15,8 @@ class StationDetailPage extends StatefulWidget {
   final String lineName;
   final double latitude;
   final double longitude;
+  final String origem;
+
 
   const StationDetailPage({
     super.key,
@@ -23,6 +25,7 @@ class StationDetailPage extends StatefulWidget {
     required this.lineName,
     required this.latitude,
     required this.longitude,
+    required this.origem,
   });
 
   @override
@@ -45,6 +48,8 @@ class _StationDetailPageState extends State<StationDetailPage> {
 
   /// Hora da última atualização dos tempos de espera (formato HH:mm).
   String? _lastUpdateTime;
+
+
 
   // ─── Ciclo de vida ────────────────────────────────────────────────────────
 
@@ -69,6 +74,27 @@ class _StationDetailPageState extends State<StationDetailPage> {
     // Calcula a distância à estação em segundo plano
     _loadDistance();
   }
+
+  // logica se é perigosa a estacao
+
+  bool _verificaPerigo(Station station) {
+
+    final reports = station.reports;
+
+    bool haperigo = false;
+
+    for (IncidentReport i in reports) {
+      if (i.danger == true){
+        haperigo = true;
+      }
+    }
+
+    return haperigo;
+  }
+
+
+
+
 
   // ─── Lógica de localização ────────────────────────────────────────────────
 
@@ -106,6 +132,13 @@ class _StationDetailPageState extends State<StationDetailPage> {
   }
 
   // ─── Widgets auxiliares ───────────────────────────────────────────────────
+
+  ///Texto com o meio de navegacao ate aqui
+  Widget _buildMeiodeNavegacao() {
+    return Text(widget.origem);
+  }
+
+
 
   /// Título de secção com barra vermelha lateral e sufixo opcional.
   Widget _buildSectionTitle(String title, {String? suffix}) {
@@ -149,8 +182,37 @@ class _StationDetailPageState extends State<StationDetailPage> {
     );
   }
 
+ Future<void> estacaofavorita(MetroRepository repository, String id) async {
+
+   Station? station = await repository.getStation(id);
+
+   IncidentType? type = IncidentType.Other;
+   int? rating = 5;
+   DateTime dateTime = DateTime.now();
+   String? notes = 'Estacao perfeita';
+   bool perigo = false;
+
+   final report = IncidentReport(
+       timestamp: dateTime,
+       rate: rating,
+       notes: notes,
+       type: type,
+       danger: perigo
+   );
+
+   await repository.attachIncident(station!.id, report);
+   await repository.getStations();
+
+   setState(() {});
+
+ }
+
+
   /// Card com as informações principais da estação (nome, linha, distância, média).
   Widget _buildStationCard(Station station, double? avgRating) {
+
+    final repository = context.read<MetroRepository>();
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -178,12 +240,18 @@ class _StationDetailPageState extends State<StationDetailPage> {
                         formatLineName(station.lineName),
                         style: TextStyle(color: Colors.grey.shade600),
                       ),
+
+                      ElevatedButton(
+                        onPressed:() async => await estacaofavorita(repository, station.id),
+                        child: const Icon(Icons.star, color: Colors.yellow, size: 32),),
                     ],
                   ),
                 ),
               ],
             ),
+
             const Divider(height: 24),
+
             // Chips de distância e média de incidentes
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -222,6 +290,30 @@ class _StationDetailPageState extends State<StationDetailPage> {
       ],
     );
   }
+
+
+  Widget _buildHaPerigo() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.dangerous, color: Colors.grey),
+          SizedBox(width: 8),
+          Text(
+            'ESTAÇÃO PERIGOSA',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+
+  }
+
 
   /// Secção de tempos de espera, agrupada por cais.
   /// Cada cais tem um header com cor e os comboios listados por baixo.
@@ -512,6 +604,12 @@ class _StationDetailPageState extends State<StationDetailPage> {
                 // Card com os dados da estação
                 _buildStationCard(station, avgRating),
                 const SizedBox(height: 24),
+
+                _buildMeiodeNavegacao(),
+                const SizedBox(height: 40),
+
+                if (_verificaPerigo(station) == true) _buildHaPerigo(),
+                const SizedBox(height: 40),
 
                 // Tempos de espera (com hora de atualização se disponível)
                 _buildSectionTitle(

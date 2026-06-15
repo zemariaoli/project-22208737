@@ -1,3 +1,4 @@
+import 'package:cmproject/models/incident_report.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
@@ -54,11 +55,103 @@ class MapScreenState extends State<MapScreen> {
     );
   }
 
+
+  Set<Marker> _buildIncidentMarkers (List<Station> stations) {
+
+    final repository = context.read<MetroRepository>();
+    final markers = <Marker>{};
+
+
+    for (Station station in stations){
+
+      final cachedStation = repository.cachedStations
+          .where((s) => s.id == station.id)
+          .firstOrNull;
+
+      final totalIncidents = cachedStation?.reports.length ?? 0;
+
+      if (totalIncidents >= 3) {
+        markers.add(
+            Marker(
+              markerId: MarkerId(station.id),
+              position: LatLng(station.latitude, station.longitude),
+              icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueCyan),
+              infoWindow: InfoWindow(
+                title: station.name,
+                snippet: 'Linha ${station.lineName}',
+              ),
+              onTap: () async {
+                await snackbarIncidentes(repository, station.id);
+                _navigateToDetail(station);
+              },
+              //onTap: () => _navigateToDetail(station),
+            )
+        );
+      }else {
+        markers.add(
+          Marker(
+            markerId: MarkerId(station.id),
+            position: LatLng(station.latitude, station.longitude),
+            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRose ),
+            infoWindow: InfoWindow(
+              title: station.name,
+              snippet: 'Linha ${station.lineName}',
+            ),
+            onTap: () async {
+              await snackbarIncidentes(repository, station.id);
+              _navigateToDetail(station);
+            },
+          )
+        );
+      }
+    }
+    return markers;
+  }
+
+
+
+  // Snack bar para media de incidentes
+  Future<void> snackbarIncidentes(MetroRepository repository, stationId) async {
+
+    final station = await repository.getStation(stationId);
+    final totaldeincidentes = station?.reports ?? [];
+
+    int totalrating = 0;
+
+    if (totaldeincidentes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Sem incidentes'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }else {
+      for (IncidentReport i in totaldeincidentes) {
+        totalrating += i.rate;
+      }
+
+      double avg = totalrating / totaldeincidentes.length;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Media de incidentes:  $avg'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+
+
+
   // ─── Widgets auxiliares ───────────────────────────────────────────────────
 
   /// Cria os marcadores vermelhos para cada estação.
   /// Ao clicar num marcador, navega para o ecrã de detalhe da estação.
   Set<Marker> _buildMarkers(List<Station> stations) {
+
+    final repository = context.read<MetroRepository>();
+
     return stations.map((station) {
       return Marker(
         markerId: MarkerId(station.id),
@@ -68,7 +161,12 @@ class MapScreenState extends State<MapScreen> {
           title: station.name,
           snippet: 'Linha ${station.lineName}',
         ),
-        onTap: () => _navigateToDetail(station),
+        onTap: () async {
+          await snackbarIncidentes(repository, station.id);
+          _navigateToDetail(station);
+
+        }
+        //onTap: () => _navigateToDetail(station),
       );
     }).toSet();
   }
@@ -84,6 +182,7 @@ class MapScreenState extends State<MapScreen> {
           lineName: station.lineName,
           latitude: station.latitude,
           longitude: station.longitude,
+          origem: "MAPA"
         ),
       ),
     );
@@ -128,6 +227,12 @@ class MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
+
+    final repository = context.watch<MetroRepository>(); // watch em vez de read
+    final stations = repository.cachedStations.isNotEmpty
+        ? repository.cachedStations
+        : [];
+
     return Scaffold(
       key: const Key('map-screen'),
       backgroundColor: Colors.grey.shade100,
@@ -157,7 +262,8 @@ class MapScreenState extends State<MapScreen> {
               target: _currentPosition,
               zoom: 13,
             ),
-            markers: _buildMarkers(stations),
+            markers: _buildIncidentMarkers(stations),
+            //markers: _buildMarkers(stations),
             myLocationEnabled: true,       // Mostra o ponto azul da localização atual
             myLocationButtonEnabled: false, // Usa o FAB personalizado em vez do botão nativo
             zoomControlsEnabled: false,     // Usa os FABs personalizados em vez dos controlos nativos

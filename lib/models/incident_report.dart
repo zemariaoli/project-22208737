@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 enum IncidentType {
   Escalator('Escada rolante'),
   Elevator('Elevador'),
@@ -16,13 +18,14 @@ class IncidentReport {
   final int rate;
   final String? notes;
   final IncidentType type;
-
+  final bool danger;
 
   IncidentReport({
     required this.timestamp,
     required this.rate,
     this.notes,
     required this.type,
+    required this.danger
   });
 
 }

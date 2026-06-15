@@ -49,7 +49,7 @@ class _ListScreenState extends State<ListScreen> {
     );
 
     return cleaned
-        .split(RegExp(r'\s*(?:,|;|/|\||\be\b)\s*', caseSensitive: false))
+        .split(RegExp(r"\s*(?:,|;|/|\||\be\b)\s*", caseSensitive: false))
         .map((line) => line.trim())
         .where((line) => line.isNotEmpty)
         .map(_capitalize)
@@ -123,6 +123,39 @@ class _ListScreenState extends State<ListScreen> {
     }).toList();
   }
 
+  // Logica para se a linha for vermelha
+  /*
+  bool isRedLine(Station station) {
+    if (station.lineName.toLowerCase().contains("vermelha")){
+      return true;
+    }else{
+      return false;
+    }
+  }
+  */
+
+  // Logica para insercao do numero de incidentes da estacao na appbar
+
+  int numeroDeIncidentes(List<Station> stations) {
+
+    final repository = context.read<MetroRepository>();
+    int totaldeincidentes = 0;
+
+    for (Station station in stations) {
+
+      final cashedStations = repository.cachedStations
+          .where((s) => s.id == station.id)
+          .firstOrNull;
+
+      totaldeincidentes += cashedStations!.reports.length;
+
+    }
+
+    return totaldeincidentes;
+  }
+
+
+
   // ─── Navegação ────────────────────────────────────────────────────────────
 
   /// Navega para o ecrã de detalhe da estação selecionada.
@@ -136,6 +169,7 @@ class _ListScreenState extends State<ListScreen> {
           lineName: formatLineName(station.lineName),
           latitude: station.latitude,
           longitude: station.longitude,
+          origem: "LISTA",
         ),
       ),
     );
@@ -261,11 +295,14 @@ class _ListScreenState extends State<ListScreen> {
     );
   }
 
+
+
   /// Card individual de cada estação na lista.
   Widget _buildStationTile(BuildContext context, Station station) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
+        //color: isRedLine(station) ? Colors.red : Colors.white,
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: const Border(
@@ -348,13 +385,21 @@ class _ListScreenState extends State<ListScreen> {
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       key: const Key('list-screen'),
       appBar: AppBar(
-        title: const Text(
-          'Estações',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: FutureBuilder<List<Station>>(
+          future: _stationsFuture,
+          builder: (context, snapshot) {
+            final totalstations = snapshot.data?.length ?? 0;
+            //${numeroDeIncidentes(repository.cachedStations)}
+            return Text(
+              'Estações: $totalstations',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            );
+          }
+          ),
         elevation: 0,
         backgroundColor: const Color(0xFFB71C1C),
         foregroundColor: Colors.white,
@@ -388,6 +433,9 @@ class _ListScreenState extends State<ListScreen> {
                   }
 
                   final stations = snapshot.data ?? [];
+
+                  /// ordenacao por ordem inversa:
+                  //stations.sort((a, b) => b.name.compareTo(a.name));
 
                   if (stations.isEmpty) {
                     return _buildErrorMessage();

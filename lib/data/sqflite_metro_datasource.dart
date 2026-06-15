@@ -47,6 +47,7 @@ class SqfliteMetroDataSource extends MetroDataSource {
               rate INTEGER NOT NULL,
               notes TEXT,
               type TEXT NOT NULL,
+              danger INTEGER NOT NULL,
               FOREIGN KEY (station_id) REFERENCES stations (id) ON DELETE CASCADE
             )
           ''');
@@ -68,8 +69,9 @@ class SqfliteMetroDataSource extends MetroDataSource {
                 station_id TEXT NOT NULL,
                 timestamp TEXT NOT NULL,
                 rate INTEGER NOT NULL,
-                notes TEXT,
+                notes TEXT, 
                 type TEXT NOT NULL,
+                danger INTEGER NOT NULL
                 FOREIGN KEY (station_id) REFERENCES stations (id) ON DELETE CASCADE
               )
             ''');
@@ -162,6 +164,7 @@ class SqfliteMetroDataSource extends MetroDataSource {
         rate: e['rate'] as int,
         notes: e['notes'] as String?,
         type: IncidentType.values.byName(e['type'] as String),
+        danger: (e['danger'] as int) == 1
       );
     }).toList();
 
@@ -196,6 +199,7 @@ class SqfliteMetroDataSource extends MetroDataSource {
         'rate': report.rate,
         'notes': report.notes,
         'type': report.type.name,
+        'danger': report.danger ? 1 : 0,
       },
     );
   }

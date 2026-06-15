@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:cmproject/data/metro_repository.dart';
 import 'package:cmproject/models/station.dart';
 import 'package:flutter/material.dart';
@@ -23,6 +25,7 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
   DateTime? _dateTime;
   String _dateTimeText = '';
   String? _notes;
+  bool _perigo = false;
 
   final DateFormat _dateFormatter = DateFormat('dd/MM/yyyy HH:mm');
 
@@ -41,6 +44,7 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
       _dateTime = null;
       _dateTimeText = '';
       _notes = null;
+      _perigo = false;
     });
   }
 
@@ -94,30 +98,27 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
     return null;
   }
 
+
+
   Future<void> _submitForm(MetroRepository repository) async {
-    debugPrint('--- [DEBUG] Botão Submeter pressionado ---');
 
     if (!_formKey.currentState!.validate()) {
-      debugPrint('--- [DEBUG] Erro: O formulário NÃO é válido! ---');
       return;
     }
 
     _formKey.currentState!.save();
-    debugPrint('--- [DEBUG] Formulário validado e guardado com sucesso ---');
 
     final report = IncidentReport(
       timestamp: _dateTime!,
       rate: _rating!,
       notes: _notes,
       type: _type!,
+      danger: _perigo
     );
 
     try {
-      debugPrint('--- [DEBUG] A iniciar chamada ao repositório... ---');
       await repository.attachIncident(_station!.id, report);
-      debugPrint('--- [DEBUG] Sucesso no repositório! ---');
     } catch (erro) {
-      debugPrint('--- [DEBUG] ERRO GRAVE NO REPOSITÓRIO: $erro ---');
 
       if (!mounted) return;
 
@@ -493,6 +494,11 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
                               state.didChange(value);
                               _notes = value;
                             },
+
+                            validator: (v) => (_rating! < 3)
+                                ? 'Preencha as notas'
+                                : null,
+
                             onSaved: (v) => _notes = v,
                             builder: (field) => InputDecorator(
                               decoration:
@@ -514,11 +520,29 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
                               ),
                             ),
                           ),
+
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              const Text('Estação perigosa'),
+                              const SizedBox(width: 8),
+                            Checkbox(
+                              value: _perigo,
+                              onChanged: (value) {
+                                setState(() {
+                                  _perigo = value!;
+                                });
+                              },
+                              ),
+                            ]
+                          )
+
                         ],
                       ),
                     ),
 
                     const SizedBox(height: 24),
+
 
                     SizedBox(
                       width: double.infinity,
