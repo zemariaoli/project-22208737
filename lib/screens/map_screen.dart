@@ -56,91 +56,42 @@ class MapScreenState extends State<MapScreen> {
   }
 
 
-  Set<Marker> _buildIncidentMarkers (List<Station> stations) {
+  // Logica ao clicar num marker aparecer a media dos incidentes dessa estacao
 
-    final repository = context.read<MetroRepository>();
-    final markers = <Marker>{};
+  Future<void> mediaDosIncidentes(MetroRepository repository, stationId) async {
+    final stations = await repository.cachedStations;
+    int countRating = 0;
+    int countReports = 0;
 
-
-    for (Station station in stations){
-
-      final cachedStation = repository.cachedStations
-          .where((s) => s.id == station.id)
-          .firstOrNull;
-
-      final totalIncidents = cachedStation?.reports.length ?? 0;
-
-      if (totalIncidents >= 3) {
-        markers.add(
-            Marker(
-              markerId: MarkerId(station.id),
-              position: LatLng(station.latitude, station.longitude),
-              icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueCyan),
-              infoWindow: InfoWindow(
-                title: station.name,
-                snippet: 'Linha ${station.lineName}',
-              ),
-              onTap: () async {
-                await snackbarIncidentes(repository, station.id);
-                _navigateToDetail(station);
-              },
-              //onTap: () => _navigateToDetail(station),
-            )
-        );
-      }else {
-        markers.add(
-          Marker(
-            markerId: MarkerId(station.id),
-            position: LatLng(station.latitude, station.longitude),
-            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRose ),
-            infoWindow: InfoWindow(
-              title: station.name,
-              snippet: 'Linha ${station.lineName}',
-            ),
-            onTap: () async {
-              await snackbarIncidentes(repository, station.id);
-              _navigateToDetail(station);
-            },
-          )
-        );
+    for (Station s in stations) {
+      if (s.id == stationId) {
+        for (IncidentReport report in s.reports) {
+          countRating += report.rate;
+          countReports++;
+        }
       }
     }
-    return markers;
-  }
+    double media = 0;
+    media = countRating / countReports;
 
-
-
-  // Snack bar para media de incidentes
-  Future<void> snackbarIncidentes(MetroRepository repository, stationId) async {
-
-    final station = await repository.getStation(stationId);
-    final totaldeincidentes = station?.reports ?? [];
-
-    int totalrating = 0;
-
-    if (totaldeincidentes.isEmpty) {
+    if (media == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Sem incidentes'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }else {
-      for (IncidentReport i in totaldeincidentes) {
-        totalrating += i.rate;
-      }
-
-      double avg = totalrating / totaldeincidentes.length;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Media de incidentes:  $avg'),
-          duration: const Duration(seconds: 2),
+          duration: const Duration(seconds: 3),
         ),
       );
     }
-  }
 
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Media dos Incidentes: $media'),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+
+
+  }
 
 
 
@@ -161,12 +112,10 @@ class MapScreenState extends State<MapScreen> {
           title: station.name,
           snippet: 'Linha ${station.lineName}',
         ),
-        onTap: () async {
-          await snackbarIncidentes(repository, station.id);
+        onTap: () {
           _navigateToDetail(station);
-
-        }
-        //onTap: () => _navigateToDetail(station),
+          mediaDosIncidentes(repository, station.id);
+        },
       );
     }).toSet();
   }
@@ -182,7 +131,7 @@ class MapScreenState extends State<MapScreen> {
           lineName: station.lineName,
           latitude: station.latitude,
           longitude: station.longitude,
-          origem: "MAPA"
+          origem: "MAPA",
         ),
       ),
     );
@@ -227,12 +176,6 @@ class MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
-
-    final repository = context.watch<MetroRepository>(); // watch em vez de read
-    final stations = repository.cachedStations.isNotEmpty
-        ? repository.cachedStations
-        : [];
-
     return Scaffold(
       key: const Key('map-screen'),
       backgroundColor: Colors.grey.shade100,
@@ -262,8 +205,7 @@ class MapScreenState extends State<MapScreen> {
               target: _currentPosition,
               zoom: 13,
             ),
-            markers: _buildIncidentMarkers(stations),
-            //markers: _buildMarkers(stations),
+            markers: _buildMarkers(stations),
             myLocationEnabled: true,       // Mostra o ponto azul da localização atual
             myLocationButtonEnabled: false, // Usa o FAB personalizado em vez do botão nativo
             zoomControlsEnabled: false,     // Usa os FABs personalizados em vez dos controlos nativos

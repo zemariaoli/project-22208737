@@ -3,25 +3,16 @@ import 'package:provider/provider.dart';
 import 'package:cmproject/data/metro_repository.dart';
 import 'package:cmproject/models/station.dart';
 
-
-class MiniDashboard extends StatefulWidget{
-  const MiniDashboard({super.key});
+class MiniDashboardScreen extends StatefulWidget {
+  const MiniDashboardScreen({super.key});
 
   @override
-  State<MiniDashboard> createState() => _MiniDashboardScreenState();
-
+  State<MiniDashboardScreen> createState() => _MiniDashboardScreenState();
 }
 
-class _MiniDashboardScreenState  extends State<MiniDashboard>{
+class _MiniDashboardScreenState extends State<MiniDashboardScreen> {
 
   Future<List<Station>>? _stationsFuture;
-
-  static const List<String> _metroLineOrder = [
-    'Azul',
-    'Amarela',
-    'Verde',
-    'Vermelha',
-  ];
 
   @override
   void initState() {
@@ -32,158 +23,115 @@ class _MiniDashboardScreenState  extends State<MiniDashboard>{
 
   @override
   Widget build(BuildContext context) {
-
     final repository = context.read<MetroRepository>();
 
     return Scaffold(
-        body: FutureBuilder<List<Station>>(
-            future: _stationsFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
+      body: FutureBuilder<List<Station>>(
+        future: _stationsFuture,
+        builder: (context, snapshot) {
 
-              if (snapshot.hasError) return _buildError();
+          final stations = repository.cachedStations.isNotEmpty
+              ? repository.cachedStations
+              : snapshot.data ?? [];
 
-              final stations = repository.cachedStations.isNotEmpty
-                  ? repository.cachedStations
-                  : snapshot.data ?? [];
+          int estacoesDaLinhaVerde = 0;
+          int estacoesDaLinhaAzul = 0;
 
-              final totalStations = stations.length;
+          for (Station s in stations) {
+            if (s.lineName == '[Verde]'){
+              estacoesDaLinhaVerde++;
+            }else if (s.lineName == '[Azul]'){
+              estacoesDaLinhaAzul++;
+            }
+          }
 
-              final lineCount = _getLineCounts(stations).length;
 
-              return Column(
+          return Column(
+
+            mainAxisAlignment: MainAxisAlignment.center,
+
+            children: [
+
+              Row(
                 children: [
-
-                  const SizedBox(height: 100),
-
-                  Center(
-                    child: Text(
-                      'Mini dashboard',
+                  const SizedBox(width: 80,),
+                  Text(
+                      'Mini Dashboard',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 35),
+                      style: const TextStyle(
+                        fontSize: 35,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      )
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 120),
+
+
+              Row(
+                children: [
+                  const SizedBox(width: 120,),
+                  Text(
+                   'Verde: $estacoesDaLinhaVerde',
+                    style: const TextStyle(
+                      fontSize: 40,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green
                     ),
                   ),
+                ],
+              ),
 
-                  const SizedBox(height: 350),
+              const SizedBox(height: 20),
 
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+              Row(
+                children: [
 
-                    children: [
-                        Text(
-                          textAlign: TextAlign.center,
-                          'E:$totalStations',
-                           // textAlign: TextAlign.left,
-                          style: TextStyle(
-                            color: Colors.green,
-                              fontSize: 30
-                          ),
-                        ),
+                  const SizedBox(width: 120,),
 
-                        const SizedBox(width: 40) ,
-
-                        Text(
-                          'L:$lineCount',
-                          style: TextStyle(
-                            color: Colors.blue,
-                              fontSize: 30
-                          ),
-                        )
-                    ],
-                  ),
-                  ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                    ), child: Text(
-                      'OK',
-                      style: TextStyle(fontSize: 16),
-                    )
+                  Text(
+                    'Azul: $estacoesDaLinhaAzul',
+                    style: const TextStyle(
+                      fontSize: 40,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
+                    ),
                   )
                 ],
-              );
-            },
-        ),
-    );
-  }
+              ),
+
+              const SizedBox(height: 250),
 
 
-  Map<String, int> _getLineCounts(List<Station> stations) {
-    final counts = <String, int>{
-      for (final line in _metroLineOrder) line: 0,
-    };
-
-    for (final station in stations) {
-      final stationLines = _extractLineNames(station.lineName);
-
-      for (final line in stationLines) {
-        counts[line] = (counts[line] ?? 0) + 1;
-      }
-    }
-
-    counts.removeWhere((line, count) => count == 0);
-
-    return counts;
-  }
-
-
-  String? _normaliseLineName(String value) {
-    final normalized = value
-        .replaceAll('[', '')
-        .replaceAll(']', '')
-        .replaceAll(RegExp(r'\bLinha\b', caseSensitive: false), '')
-        .trim()
-        .toLowerCase();
-
-    switch (normalized) {
-      case 'azul':
-        return 'Azul';
-      case 'amarela':
-      case 'amarelo':
-        return 'Amarela';
-      case 'verde':
-        return 'Verde';
-      case 'vermelha':
-      case 'vermelho':
-        return 'Vermelha';
-      default:
-        return null;
-    }
-  }
-
-
-  List<String> _extractLineNames(String rawLineName) {
-    final cleaned = rawLineName
-        .replaceAll('[', '')
-        .replaceAll(']', '')
-        .replaceAll(RegExp(r'\bLinha\b', caseSensitive: false), '')
-        .trim();
-
-    return cleaned
-        .split(RegExp(r'\s*,\s*|\s+e\s+'))
-        .map(_normaliseLineName)
-        .whereType<String>()
-        .toSet()
-        .toList();
-  }
-
-  Widget _buildError() {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.wifi_off, size: 48, color: Colors.grey),
-          SizedBox(height: 12),
-          Text(
-            'Não foi possível carregar os dados.',
-            style: TextStyle(color: Colors.grey),
-          ),
-        ],
+              ElevatedButton(
+                  onPressed: () {},
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                  ),
+                  child: (
+                    Text(
+                      'OK',
+                      style: const TextStyle(
+                        fontSize: 40,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    )
+                  )
+              )
+            ],
+          );
+        },
       ),
     );
   }
+
+
+
+
+
 
 
 }

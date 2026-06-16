@@ -31,7 +31,7 @@ class MainScreenState extends State<MainPage> {
   Widget _buildScreen(int index) {
     switch (index) {
       case 0:
-        return const MiniDashboard();
+        return const MiniDashboardScreen();
       case 1:
         return const DashboardScreen();
       case 2:

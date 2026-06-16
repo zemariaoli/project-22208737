@@ -1,5 +1,4 @@
 import 'dart:ffi';
-
 import 'package:cmproject/data/metro_repository.dart';
 import 'package:cmproject/models/station.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +17,8 @@ class IncidentsScreen extends StatefulWidget {
 class _IncidentsScreenState extends State<IncidentsScreen> {
   final _formKey = GlobalKey<FormState>();
   Future<List<Station>>? _stationsFuture;
+
+  int _tentativasSemData = 0;
 
   Station? _station;
   IncidentType? _type;
@@ -101,6 +102,21 @@ class _IncidentsScreenState extends State<IncidentsScreen> {
 
 
   Future<void> _submitForm(MetroRepository repository) async {
+
+    if (_dateTime == null && _tentativasSemData == 0) {
+      _formKey.currentState!.validate();
+      _tentativasSemData++;
+      return;
+    }
+
+    if (_dateTime == null && _tentativasSemData >= 1) {
+      _dateTime = DateTime.now();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Compra um relógio!')),
+      );
+    }
+
+
 
     if (!_formKey.currentState!.validate()) {
       return;

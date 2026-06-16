@@ -1,4 +1,5 @@
 import 'package:cmproject/data/metro_repository.dart';
+import 'package:cmproject/models/incident_report.dart';
 import 'package:cmproject/models/station.dart';
 import 'package:cmproject/screens/list_detail_screen.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +18,7 @@ class ListScreen extends StatefulWidget {
 class _ListScreenState extends State<ListScreen> {
   // ─── Estado ───────────────────────────────────────────────────────────────
 
+  bool mostrarPerigosas = false;
   /// Texto de pesquisa introduzido pelo utilizador.
   String searchStation = '';
 
@@ -123,35 +125,37 @@ class _ListScreenState extends State<ListScreen> {
     }).toList();
   }
 
-  // Logica para se a linha for vermelha
-  /*
-  bool isRedLine(Station station) {
-    if (station.lineName.toLowerCase().contains("vermelha")){
-      return true;
-    }else{
-      return false;
+  /// Devolve true se a estação tiver 2 ou mais incidentes do tipo Elevador
+  bool _temDoisOuMaisElevadores(Station station) {
+    int count = 0;
+    for (final report in station.reports) {
+      if (report.type == IncidentType.Elevator) {
+        count++;
+      }
     }
+    return count >= 2;
   }
-  */
 
-  // Logica para insercao do numero de incidentes da estacao na appbar
 
-  int numeroDeIncidentes(List<Station> stations) {
+  // Logica para insercao da estacao com mais incidentes
+
+  String numeroDeIncidentes(List<Station> stations) {
 
     final repository = context.read<MetroRepository>();
-    int totaldeincidentes = 0;
+    int maiorIncidentes = 0;
+    String? estacao;
+
+
 
     for (Station station in stations) {
-
-      final cashedStations = repository.cachedStations
-          .where((s) => s.id == station.id)
-          .firstOrNull;
-
-      totaldeincidentes += cashedStations!.reports.length;
+        if (station.reports.length > maiorIncidentes) {
+          maiorIncidentes = station.reports.length;
+          estacao = station.name;
+        }
 
     }
 
-    return totaldeincidentes;
+    return '$estacao ($maiorIncidentes)';
   }
 
 
@@ -297,12 +301,16 @@ class _ListScreenState extends State<ListScreen> {
 
 
 
+
+
   /// Card individual de cada estação na lista.
   Widget _buildStationTile(BuildContext context, Station station) {
+
+    final mostrar = _temDoisOuMaisElevadores(station);
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        //color: isRedLine(station) ? Colors.red : Colors.white,
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: const Border(
@@ -334,7 +342,9 @@ class _ListScreenState extends State<ListScreen> {
             ),
           ),
           subtitle: Text(
-            formatLineName(station.lineName),
+            mostrar
+            ? '${formatLineName(station.lineName)} - Estação fitness'
+            : formatLineName(station.lineName),
             style: TextStyle(color: Colors.grey.shade600),
           ),
           trailing: const Icon(
@@ -381,10 +391,40 @@ class _ListScreenState extends State<ListScreen> {
     );
   }
 
+
+  List<Station> estacoesPerigosas(MetroRepository repository) {
+    final stations = repository.cachedStations;
+    List<Station> estacoesPerigosas = [];
+    List<IncidentReport> reports;
+    bool haEstacoesPerigosas = false;
+    bool mostrarPerigosas = false;
+
+    for (Station s in stations) {
+      reports = repository.getIncidents(s.id);
+
+      for (IncidentReport r in reports) {
+        if (r.danger == true) {
+          estacoesPerigosas.add(s);
+          haEstacoesPerigosas = true;
+          mostrarPerigosas = true;
+        }
+      }
+
+      reports = [];
+    }
+
+
+    return estacoesPerigosas;
+  }
+
+
   // ─── Build principal ──────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
+
+    final repository = context.read<MetroRepository>();
+
 
     return Scaffold(
       key: const Key('list-screen'),
@@ -392,10 +432,11 @@ class _ListScreenState extends State<ListScreen> {
         title: FutureBuilder<List<Station>>(
           future: _stationsFuture,
           builder: (context, snapshot) {
+
             final totalstations = snapshot.data?.length ?? 0;
             //${numeroDeIncidentes(repository.cachedStations)}
             return Text(
-              'Estações: $totalstations',
+              numeroDeIncidentes(repository.cachedStations),
               style: const TextStyle(fontWeight: FontWeight.bold),
             );
           }
@@ -416,6 +457,24 @@ class _ListScreenState extends State<ListScreen> {
           children: [
             _buildSearchBar(),
             _buildNetworkHeader(),
+
+            Row(
+                children: [
+                  const SizedBox(width: 12),
+                  const Text('Mostrar apenas perigosas'),
+                  const SizedBox(width: 8),
+
+                  Checkbox(
+                      value: mostrarPerigosas,
+                      onChanged: (value) {
+                        setState(() {
+                          mostrarPerigosas = value ?? false;
+                        });
+                      }
+                  )
+                ]
+            ),
+
             Expanded(
               child: FutureBuilder<List<Station>>(
                 future: _stationsFuture,
@@ -443,12 +502,16 @@ class _ListScreenState extends State<ListScreen> {
 
                   final filteredStations = _filterStations(stations);
 
+
                   if (filteredStations.isEmpty) {
                     return const Center(
                       child: Text('Sem estações disponíveis.'),
                     );
                   }
 
+                  if (mostrarPerigosas == true) {
+                    return _buildList(estacoesPerigosas(repository));
+                  }
                   return _buildList(filteredStations);
                 },
               ),
@@ -459,6 +522,8 @@ class _ListScreenState extends State<ListScreen> {
     );
   }
 }
+
+
 
 
 class LowerCaseTextFormatter extends TextInputFormatter {

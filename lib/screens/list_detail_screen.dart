@@ -189,7 +189,7 @@ class _StationDetailPageState extends State<StationDetailPage> {
    IncidentType? type = IncidentType.Other;
    int? rating = 5;
    DateTime dateTime = DateTime.now();
-   String? notes = 'Estacao perfeita';
+   String? notes = 'Avaliação automática';
    bool perigo = false;
 
    final report = IncidentReport(
@@ -201,7 +201,6 @@ class _StationDetailPageState extends State<StationDetailPage> {
    );
 
    await repository.attachIncident(station!.id, report);
-   await repository.getStations();
 
    setState(() {});
 
@@ -243,7 +242,8 @@ class _StationDetailPageState extends State<StationDetailPage> {
 
                       ElevatedButton(
                         onPressed:() async => await estacaofavorita(repository, station.id),
-                        child: const Icon(Icons.star, color: Colors.yellow, size: 32),),
+                        child: Text('Máxima Avaliação')
+                      ),
                     ],
                   ),
                 ),
